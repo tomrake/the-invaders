@@ -6,6 +6,7 @@
   :author "Jan Tatham <jan@sebity.com>"
   :license "GPL v2"
   :depends-on (#:lispbuilder-sdl
+	       #:lispbuilder-sdl-image
                #:lispbuilder-sdl-ttf
                #:lispbuilder-sdl-mixer)
   :serial t

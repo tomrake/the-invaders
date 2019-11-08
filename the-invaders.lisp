@@ -383,7 +383,7 @@
      do (progn (setf (enemy-explosion-time e) (decf (enemy-explosion-time e)))
 	       (if (zerop (enemy-explosion-time e))
 		   (setf *enemy-explosion* (remove e *enemy-explosion*))
-		   (sdl:draw-surface-at-* (sdl:load-image *gfx-explosion-enemy*)
+		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-enemy*)
 					  (enemy-explosion-x e) (enemy-explosion-y e))))))
 
 
@@ -453,7 +453,7 @@
 	     (setf *mothership-explosion* nil)
 	     (progn (setf (mothership-explosion-time m)
 		(decf (mothership-explosion-time m)))
-		(sdl:draw-surface-at-* (sdl:load-image *gfx-explosion-player*)
+		(sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-player*)
 			(mothership-explosion-x m)
 			(mothership-explosion-y m)))))))
 
@@ -574,7 +574,7 @@
      do	(progn (setf (player-explosion-time p) (decf (player-explosion-time p)))
 	       (if (zerop (player-explosion-time p))
 		   (setf *player-explosion* (remove p *player-explosion*))
-		   (sdl:draw-surface-at-* (sdl:load-image *gfx-explosion-player*)
+		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-player*)
 					  (player-explosion-x p) (player-explosion-y p))))))
 
 
@@ -584,7 +584,7 @@
 ;;;; DISPLAY-LEVEL function
 
 (defun display-level ()
-  (sdl:draw-surface-at-* (sdl:load-image *gfx-space-bg*) 0 0))
+  (sdl:draw-surface-at-* (sdl-image:load-image *gfx-space-bg*) 0 0))
 
 
 ;;;; DRAW-GAME-UI function
@@ -664,7 +664,7 @@
 ;;;; DISPLAY-END-GAME function
 
 (defun display-end-game ()
-  (sdl:draw-surface-at-* (sdl:load-image *gfx-game-over-bg*) 0 0)
+  (sdl:draw-surface-at-* (sdl-image:load-image *gfx-game-over-bg*) 0 0)
 
   ;(draw-text "The Invaders" 310 20 255 255 255 *ttf-font-huge*)
 
@@ -678,7 +678,7 @@
 ;;;; DISPLAY-MENU function
 
 (defun display-menu ()
-  (sdl:draw-surface-at-* (sdl:load-image *gfx-title-bg*) 0 0)
+  (sdl:draw-surface-at-* (sdl-image:load-image *gfx-title-bg*) 0 0)
 
   (draw-text "Press SPACE to Continue..." 290 570 255 255 255))
 
@@ -784,7 +784,7 @@
 
 (defun load-sprite-sheet ()
   ; enemy sprite sheet
-  (setf *ss-enemy* (sdl:load-image *gfx-ss-enemy*))
+  (setf *ss-enemy* (sdl-image:load-image *gfx-ss-enemy*))
   
   (setf *cells* '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
 		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32)))
@@ -792,14 +792,14 @@
   (setf (sdl:cells *ss-enemy*) *cells*)
 
   ; player sprite sheet
-  (setf *ss-player* (sdl:load-image *gfx-ss-player*))
+  (setf *ss-player* (sdl-image:load-image *gfx-ss-player*))
   
   (setf *cells* '((0 0 52 32) (0 32 52 32) (0 64 52 32)))
 
   (setf (sdl:cells *ss-player*) *cells*)
 
   ; mothership sprite sheet
-  (setf *ss-mothership* (sdl:load-image *gfx-ss-mothership*))
+  (setf *ss-mothership* (sdl-image:load-image *gfx-ss-mothership*))
 
   (setf *cells* '((0 0 64 32) (0 32 64 32) (0 64 64 32)))
 
