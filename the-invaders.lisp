@@ -20,7 +20,8 @@
 
 (in-package #:the-invaders)
 
-(defparameter *data-root* (asdf:system-source-directory 'the-invaders))
+(defparameter *data-root*
+  (asdf:system-source-directory 'the-invaders))
 (defparameter *font-root* (merge-pathnames "fonts/" *data-root*))
 (defparameter *audio-root* (merge-pathnames "audio/" *data-root*))
 (defparameter *gfx-root* (merge-pathnames "gfx/" *data-root*))
@@ -125,10 +126,8 @@
   (y 0)
   (sprite 0))
 
-(defstruct player-shot
-  (x 0)
-  (y 0)
-  (dy 0))
+(defclass player-shot (game-object)
+  ())
 
 (defstruct player-explosion
   (x 0)
@@ -511,7 +510,7 @@
 
 (defun fire-shot (p)
   (when (zerop (length *player-shots*))
-      (push (make-player-shot :x (player-x p) :y (player-y p) :dy -5) *player-shots*)
+      (push (make-instance 'player-shot :x (player-x p) :y (player-y p) :dy -5 :dx 0) *player-shots*)
       (play-sound 2)))
 
 
@@ -519,16 +518,16 @@
 
 (defun draw-shot ()
   (loop for f in *player-shots*
-     do (draw-box (player-shot-x f) (player-shot-y f) 2 10 255 255 255)))
+     do (draw-box (x f) (y f) 2 10 255 255 255)))
 
 
 ;;;; UPDATE-PLAYER_SHOTS function
 
 (defun update-player-shots ()
   (loop for f in *player-shots*
-     do (progn (if (<= (player-shot-y f) 0)
+     do (progn (if (<= (y f) 0)
 		   (setf *player-shots* (remove f *player-shots*))
-		   (setf (player-shot-y f) (+ (player-shot-y f) (player-shot-dy f))))
+		   (delta-move f))
 	       (player-shot-enemy f)
 	       (player-shot-mothership f))))
 
@@ -537,10 +536,10 @@
 
 (defun player-shot-enemy (s)
   (loop for e in *enemy*
-     do (if (and (<= (enemy-x e) (player-shot-x s))
-		 (>= (+ (enemy-x e) 48) (+ (player-shot-x s) 2))
-		 (<= (enemy-y e) (player-shot-y s))
-		 (>= (+ (enemy-y e) 32) (player-shot-y s)))
+     do (if (and (<= (enemy-x e) (x s))
+		 (>= (+ (enemy-x e) 48) (+ (x s) 2))
+		 (<= (enemy-y e) (y s))
+		 (>= (+ (enemy-y e) 32) (y s)))
 	    (progn (create-enemy-explosion (enemy-x e) (enemy-y e))
 		   (setf *enemy* (remove e *enemy*))
 		   (play-sound 3)
@@ -559,10 +558,10 @@
 (defun player-shot-mothership (s)
   (if *mothership*
       (let ((m *mothership*))
-	(if (and (<= (mothership-x m) (player-shot-x s))
-		 (>= (+ (mothership-x m) 64) (+ (player-shot-x s) 2))
-		 (<= (mothership-y m) (player-shot-y s))
-		 (>= (+ (mothership-y m) 32) (player-shot-y s)))
+	(if (and (<= (mothership-x m) (x s))
+		 (>= (+ (mothership-x m) 64) (+ (x s) 2))
+		 (<= (mothership-y m) (y s))
+		 (>= (+ (mothership-y m) 32) (y s)))
 	    (progn (create-mothership-explosion m)
 		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
 		   (setf *mothership* nil)
