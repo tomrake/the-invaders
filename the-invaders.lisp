@@ -103,6 +103,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; STRUCTS/CLASSES ;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defclass game-object ()
+  ((x :initarg :x :accessor x)
+   (y :initarg :y :accessor y)
+   (dx :initarg :dx :accessor dx)
+   (dy :initarg :dy :accessor dy)))
+
+(defmethod delta-move ((obj game-object))
+  (incf (x obj) (dx obj))
+  (incf (y obj) (dy obj)))
+
+  
+
+  
 (defstruct player
   (x 0)
   (y 0))
@@ -127,10 +140,8 @@
   (y 0)
   (sprite 0))
 
-(defstruct enemy-shot
-  (x 0)
-  (y 0)
-  (dy 0))
+(defclass enemy-shot (game-object)
+  ())
 
 (defstruct enemy-explosion
   (x 0)
@@ -329,9 +340,10 @@
 
 (defun fire-enemy-shot ()
   (let ((enemy (random-element *enemy*)))
-    (push (make-enemy-shot :x (+ (enemy-x enemy) 24) 
-			   :y (+ (enemy-y enemy) 32)
-			   :dy (+ (random 3) 3)) *enemy-shots*)
+    (push (make-instance 'enemy-shot :x (+ (enemy-x enemy) 24) 
+			 :y (+ (enemy-y enemy) 32)
+			 :dx 0
+			 :dy (+ (random 3) 3)) *enemy-shots*)
     (play-sound 2)))
 
 
@@ -339,16 +351,16 @@
 
 (defun draw-enemy-shot ()
   (loop for f in *enemy-shots*
-     do (draw-box (enemy-shot-x f) (enemy-shot-y f) 2 10 255 0 0)))
+     do (draw-box (x f) (y f) 2 10 255 0 0)))
 
 
 ;;;; UPDATE-ENEMY-SHOTS function
 
 (defun update-enemy-shots ()
   (loop for f in *enemy-shots*
-     do (progn (if (> (enemy-shot-y f) *game-height*)
+     do (progn (if (> (y f) *game-height*)
 		   (setf *enemy-shots* (remove f *enemy-shots*))
-		   (setf (enemy-shot-y f) (+ (enemy-shot-y f) (enemy-shot-dy f))))
+		   (delta-move f))
 	       (enemy-shot-player f)))
 
   (if (<= *player-lives* 0)
@@ -359,10 +371,10 @@
 
 (defun enemy-shot-player (s)
   (let ((p *player*))
-    (when (and (<= (- (player-x p) 26) (enemy-shot-x s))
-		 (>= (+ (player-x p) 26) (+ (enemy-shot-x s) 2))
-		 (<= (player-y p) (enemy-shot-y s))
-		 (>= (+ (player-y p) 32) (enemy-shot-y s)))
+    (when (and (<= (- (player-x p) 26) (x s))
+		 (>= (+ (player-x p) 26) (+ (x s) 2))
+		 (<= (player-y p) (y s))
+		 (>= (+ (player-y p) 32) (y s)))
 	    (create-player-explosion)
 	    (setf *player-lives* (decf *player-lives*))
 	    (play-sound 4)
