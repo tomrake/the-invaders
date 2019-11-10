@@ -350,8 +350,11 @@
 
 (defun draw-enemy-shot ()
   (loop for f in *enemy-shots*
-     do (draw-box (x f) (y f) 2 10 255 0 0)))
+     do (draw f)))
 
+
+(defmethod draw ((shot enemy-shot))
+  (draw-box (x shot) (y shot) 2 10 255 0 0))
 
 ;;;; UPDATE-ENEMY-SHOTS function
 
@@ -518,7 +521,10 @@
 
 (defun draw-shot ()
   (loop for f in *player-shots*
-     do (draw-box (x f) (y f) 2 10 255 255 255)))
+     do (draw f)))
+
+(defmethod draw ((shot player-shot))
+  (draw-box (x shot) (y shot) 2 10 255 255 255))
 
 
 ;;;; UPDATE-PLAYER_SHOTS function
