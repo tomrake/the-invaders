@@ -114,7 +114,9 @@
   (incf (x obj) (dx obj))
   (incf (y obj) (dy obj)))
 
-  
+(defclass sprite-sheet-object ()
+  ((sheet :initarg :img :reader sheet)
+   (cells :initarg :cells :reader cells)))  
 
   
 (defstruct player
