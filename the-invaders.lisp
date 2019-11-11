@@ -928,8 +928,7 @@
 ;;;; START function
 
 (defun start ()
-  (initialize-game)
-  (reset-game)
+
   (sdl:with-init (sdl:sdl-init-video sdl:sdl-init-audio)
     (sdl:window *game-width* *game-height* :title-caption "The Invaders")
     (setf (sdl:frame-rate) 60)
@@ -937,7 +936,8 @@
     (setup-audio)
 
     (load-sprite-sheet)
-
+    (initialize-game)
+    (reset-game)
     ;(sdl-mixer:play-music *music-intro* :loop t)
 
     (unless (sdl:initialise-default-font *terminus-ttf-18*)
