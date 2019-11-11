@@ -158,10 +158,12 @@
   (blt-draw (sheet obj) (x obj) (y obj) (+ (sprite obj) (* (phase-offset obj) phase))))
 
   
-(defstruct player
-  (x 0)
-  (y 0))
-
+(defclass player (sprite-object)
+  ())
+  
+(defmethod draw-cell ((obj player) (cell number))
+  "The player ship is centered on the gun 26 pixels from the edge."
+  (blt-draw (sheet obj) ( - (x obj) 26) (y obj) cell))
 
 (defclass player-shot (game-object)
   ())
@@ -408,14 +410,14 @@
 
 (defun enemy-shot-player (s)
   (let ((p *player*))
-    (when (and (<= (- (player-x p) 26) (x s))
-		 (>= (+ (player-x p) 26) (+ (x s) 2))
-		 (<= (player-y p) (y s))
-		 (>= (+ (player-y p) 32) (y s)))
+    (when (and (<= (- (x p) 26) (x s))
+		 (>= (+ (x p) 26) (+ (x s) 2))
+		 (<= (y p) (y s))
+		 (>= (+ (y p) 32) (y s)))
 	    (create-player-explosion)
 	    (setf *player-lives* (decf *player-lives*))
 	    (play-sound 4)
-	    (setf (player-x p) 400)
+	    (setf (x p) 400)
 	    (setf *enemy-shots* (remove s *enemy-shots*)))))
 
 
@@ -523,32 +525,31 @@
 ;;;; CREATE-PLAYER function
 
 (defun create-player ()
-  (setf *player* (make-player :x 400 :y 540)))
+  (setf *player* (make-instance 'player :x 400 :y 540 :sheet *ss-player*)))
 
 
 ;;;; DRAW-PLAYER-SHIP function
 
 (defun draw-player-ship (p)
-  (sdl:draw-surface-at-* *ss-player* (- (player-x p) 26) (player-y p) 
-			       :cell (mod *game-ticks* 3)))
+   (draw-cell  p  (mod *game-ticks* 3)))
 
 ;;;; MOVE-PLAYER-SHIP function
 
 (defun move-player-ship (p direction)
-  (cond ((equalp direction 'left) (progn (setf (player-x p) (- (player-x p) 4))
-					 (if (<= (player-x p) 26)
-					     (setf (player-x p) 26))))
+  (cond ((equalp direction 'left) (progn (setf (x p) (- (x p) 4))
+					 (if (<= (x p) 26)
+					     (setf (x p) 26))))
 
-	((equalp direction 'right) (progn (setf (player-x p) (+ (player-x p) 4))
-					  (if (>= (player-x p) (- *game-width* 26))
-					      (setf (player-x p) (- *game-width* 26)))))))
+	((equalp direction 'right) (progn (setf (x p) (+ (x p) 4))
+					  (if (>= (x p) (- *game-width* 26))
+					      (setf (x p) (- *game-width* 26)))))))
 
 
 ;;;; FIRE-SHOT function
 
 (defun fire-shot (p)
   (when (zerop (length *player-shots*))
-      (push (make-instance 'player-shot :x (player-x p) :y (player-y p) :dy -5 :dx 0) *player-shots*)
+      (push (make-instance 'player-shot :x (x p) :y (y p) :dy -5 :dx 0) *player-shots*)
       (play-sound 2)))
 
 
@@ -613,8 +614,8 @@
 ;;;; CREATE-PLAYER-EXPLOSION function
 
 (defun create-player-explosion ()
-  (push (make-player-explosion :x (player-x *player*)
-			       :y (player-y *player*)
+  (push (make-player-explosion :x (x *player*)
+			       :y (y *player*)
 			       :time 20)
 	*player-explosion*))
 
@@ -849,12 +850,17 @@
 
   ;; (setf (sdl:cells *ss-enemy*) *cells*)
 
-  ; player sprite sheet
-  (setf *ss-player* (sdl-image:load-image *gfx-ss-player*))
+					; player sprite sheet
+  (setf *ss-player*
+	(make-instance 'sprite-sheet-object
+		       :image *gfx-ss-player*
+		       :cells '((0 0 52 32) (0 32 52 32) (0 64 52 32))))
+	
+  ;; (setf *ss-player* (sdl-image:load-image *gfx-ss-player*))
   
-  (setf *cells* '((0 0 52 32) (0 32 52 32) (0 64 52 32)))
+  ;; (setf *cells* '((0 0 52 32) (0 32 52 32) (0 64 52 32)))
 
-  (setf (sdl:cells *ss-player*) *cells*)
+  ;; (setf (sdl:cells *ss-player*) *cells*)
 
   ; mothership sprite sheet
   (setf *ss-mothership* (sdl-image:load-image *gfx-ss-mothership*))
