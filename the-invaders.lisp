@@ -105,28 +105,63 @@
 ;;;;;;;;;;;;;;;;;;;;;;;; STRUCTS/CLASSES ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defclass game-object ()
-  ((x :initarg :x :accessor x)
-   (y :initarg :y :accessor y)
-   (dx :initarg :dx :accessor dx)
-   (dy :initarg :dy :accessor dy)))
+  ((x :initarg :x :initform 0 :accessor x)
+   (y :initarg :y :initform 0 :accessor y)
+   (dx :initarg :dx :initform 0 :accessor dx)
+   (dy :initarg :dy :initform 0 :accessor dy)))
+
+(defmethod draw ((obj game-object))
+  (error "Nothing to draw!"))
 
 (defmethod delta-move ((obj game-object))
+  "Change the object position by one step."
   (incf (x obj) (dx obj))
   (incf (y obj) (dy obj)))
 
+;;; The Sprite object class
+
+(defclass sprite-object (game-object)
+  ((sheet :initarg :sheet :reader sheet)))
+
+(defmethod draw-cell ((obj sprite-object) (cell number))
+  "Draw the cell of spite-object from the sprite sheet."
+  (blt-draw (sheet obj) (x obj) (y obj) cell))
+
+
+;;;; The Sprite Sheet classs
+
 (defclass sprite-sheet-object ()
-  ((sheet :initarg :img :reader sheet)
-   (cells :initarg :cells :reader cells)))  
+  ((image :initarg :image :reader image)
+   (cells :initarg :cells :reader cells)
+   (sheet :initform nil)))
+
+
+(defmethod sheet ((ss sprite-sheet-object))
+  "Return the sdl image object for sheet object."
+  (cond ((slot-value ss 'sheet))
+	(t (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss))
+		 (sdl:cells (slot-value ss 'sheet)) (cells ss))
+	   (slot-value ss 'sheet))))
+
+(defmethod blt-draw ((ss sprite-sheet-object) (x number) (y number) (cell number))
+  "Draw the cell portion of the sheet object for the cell at x and y offsets."
+  (sdl:draw-surface-at-* (sheet ss) x y :cell cell))
+
+;;;; The enemy class
+
+(defclass enemy (sprite-object)
+  ((sprite :initarg :sprite :initform 0 :accessor sprite)
+   (phase-offset :initarg :phase-offset :initform 0 :reader phase-offset)))
+
+(defmethod draw-cell ((obj enemy) (phase number))
+  "Enemy objects have a more complex cell indexing."
+  (blt-draw (sheet obj) (x obj) (y obj) (+ (sprite obj) (* (phase-offset obj) phase))))
 
   
 (defstruct player
   (x 0)
   (y 0))
 
-(defstruct enemy
-  (x 0)
-  (y 0)
-  (sprite 0))
 
 (defclass player-shot (game-object)
   ())
@@ -136,10 +171,6 @@
   (y 0)
   (time 0))
 
-(defstruct enemy
-  (x 0)
-  (y 0)
-  (sprite 0))
 
 (defclass enemy-shot (game-object)
   ())
@@ -251,19 +282,21 @@
 
   (loop for y below 5
      do (loop for x below 8
-	   do (push (make-enemy :x (* x *space-w*) :y (+ (* y *space-h*) dy)
-				:sprite y) *enemy*))))
+	   do (push
+	       (make-instance
+		'enemy
+		:x (* x *space-w*)
+		:y (+ (* y *space-h*) dy)
+		:sheet *ss-enemy*
+		:phase-offset 5
+		:sprite y) *enemy*))))
 
 
 ;;;; DRAW-ENEMY function
 
 (defun draw-enemy ()
   (loop for e in *enemy*
-     do (sdl:draw-surface-at-* *ss-enemy* (enemy-x e) (enemy-y e) 
-			       :cell (+ (enemy-sprite e) 
-					(mod (/ (enemy-x e) 2) 10)))))
-;			       :cell (aref *level* (enemy-y e) (enemy-x e)))))
-
+     do (draw-cell e (mod (mod (x e) *space-h* ) 2))))
 
 ;;;; UPDATE-ENEMY function
 
@@ -281,10 +314,10 @@
 (defun determine-enemy-position ()
   (loop for e in *enemy*
      do (if (and (equalp *enemy-direction* 'right)
-		 (>= (+ (enemy-x e) 50) *game-width*))
+		 (>= (+ (x e) 50) *game-width*))
 	    (setf *enemy-direction* 'down-and-left)
 	    (if (and (equalp *enemy-direction* 'left)
-		     (<= (enemy-x e) 0))
+		     (<= (x e) 0))
 		(setf *enemy-direction* 'down-and-right)))))
 
 
@@ -293,20 +326,20 @@
 (defun update-enemy-position ()
   (cond ((equalp *enemy-direction* 'right)
 	 (loop for e in *enemy*
-	    do (setf (enemy-x e) (+ (enemy-x e) *enemy-move-space*))))
+	    do (setf (x e) (+ (x e) *enemy-move-space*))))
 
 	((equalp *enemy-direction* 'left)
 	 (loop for e in *enemy*
-	    do (setf (enemy-x e) (+ (enemy-x e) (- *enemy-move-space*)))))
+	    do (setf (x e) (+ (x e) (- *enemy-move-space*)))))
 
 	((equalp *enemy-direction* 'down-and-right)
 	 (loop for e in *enemy*
-	    do (progn (setf (enemy-y e) (+ (enemy-y e) 20))
+	    do (progn (setf (y e) (+ (y e) 20))
 		      (setf *enemy-direction* 'right))))
 
 	((equalp *enemy-direction* 'down-and-left)
 	 (loop for e in *enemy*
-	    do (progn (setf (enemy-y e) (+ (enemy-y e) 20))
+	    do (progn (setf (y e) (+ (y e) 20))
 		      (setf *enemy-direction* 'left)))))
 
   (enemy-hit-bottom)
@@ -320,7 +353,7 @@
 
 (defun enemy-hit-bottom ()
   (loop for e in *enemy*
-     do (if (> (+ (enemy-y e) 32) 540)
+     do (if (> (+ (y e) 32) 540)
 	    (setf *player-lives* 0))))
 
 
@@ -341,8 +374,8 @@
 
 (defun fire-enemy-shot ()
   (let ((enemy (random-element *enemy*)))
-    (push (make-instance 'enemy-shot :x (+ (enemy-x enemy) 24) 
-			 :y (+ (enemy-y enemy) 32)
+    (push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
+			 :y (+ (y enemy) 32)
 			 :dx 0
 			 :dy (+ (random 3) 3)) *enemy-shots*)
     (play-sound 2)))
@@ -544,11 +577,11 @@
 
 (defun player-shot-enemy (s)
   (loop for e in *enemy*
-     do (if (and (<= (enemy-x e) (x s))
-		 (>= (+ (enemy-x e) 48) (+ (x s) 2))
-		 (<= (enemy-y e) (y s))
-		 (>= (+ (enemy-y e) 32) (y s)))
-	    (progn (create-enemy-explosion (enemy-x e) (enemy-y e))
+     do (if (and (<= (x e) (x s))
+		 (>= (+ (x e) 48) (+ (x s) 2))
+		 (<= (y e) (y s))
+		 (>= (+ (y e) 32) (y s)))
+	    (progn (create-enemy-explosion (x e) (y e))
 		   (setf *enemy* (remove e *enemy*))
 		   (play-sound 3)
 		   (setf *player-shots* (remove s *player-shots*))
@@ -802,13 +835,19 @@
 
 
 (defun load-sprite-sheet ()
-  ; enemy sprite sheet
-  (setf *ss-enemy* (sdl-image:load-image *gfx-ss-enemy*))
+					; enemy sprite sheet
+  (setf *ss-enemy*
+	(make-instance 'sprite-sheet-object
+		       :image *gfx-ss-enemy*
+		       :cells '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
+		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32))))
   
-  (setf *cells* '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
-		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32)))
+  ;; (setf *ss-enemy* (sdl-image:load-image *gfx-ss-enemy*))
+  
+  ;; (setf *cells* '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
+  ;; 		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32)))
 
-  (setf (sdl:cells *ss-enemy*) *cells*)
+  ;; (setf (sdl:cells *ss-enemy*) *cells*)
 
   ; player sprite sheet
   (setf *ss-player* (sdl-image:load-image *gfx-ss-player*))
