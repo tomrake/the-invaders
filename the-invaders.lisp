@@ -202,10 +202,8 @@
   (y 0)
   (time 0))
 
-(defstruct mothership
-  (x 0)
-  (y 0)
-  (dx 0))
+(defclass mothership (sprite-object) 
+  ())
 
 (defstruct mothership-explosion
   (x 0)
@@ -483,7 +481,7 @@
 	(setf x (+ *game-width* 5))
 	(setf dx -3))
 
-    (setf *mothership* (make-mothership :x x :y 35 :dx dx)))
+    (setf *mothership* (make-instance 'mothership :x x :y 35 :dx dx :sheet *ss-mothership*)))
   (play-mothership-engine))
 
 
@@ -492,8 +490,7 @@
 (defun draw-mothership ()
   (if *mothership*
       (let ((m *mothership*))
-	(sdl:draw-surface-at-* *ss-mothership* (mothership-x m) (mothership-y m)
-			       :cell (floor (mod *game-ticks* 9) 3)))))
+	(blt-draw (sheet m) (x m) (y m) (floor (mod *game-ticks* 9) 3)))))
 
 
 ;;;; UPDATE-MOTHERSHIP function
@@ -501,17 +498,17 @@
 (defun update-mothership ()
   (when *mothership*
       (let ((m *mothership*))
-       (setf (mothership-x m) (+ (mothership-x m) (mothership-dx m)))
-       (if (or (<= (mothership-x m) -75)
-	       (>= (mothership-x m) (+ *game-width* 10)))
+       (setf (x m) (+ (x m) (dx m)))
+       (if (or (<= (x m) -75)
+	       (>= (x m) (+ *game-width* 10)))
 	   (setf *mothership* nil)))))
 
 
 ;;;; CREATE-MOTHERSHIP-EXPLOSION function
 
 (defun create-mothership-explosion (m)
-  (setf *mothership-explosion* (make-mothership-explosion :x (mothership-x m)
-							  :y (mothership-y m)
+  (setf *mothership-explosion* (make-mothership-explosion :x (x m)
+							  :y (y m)
 							  :time 15)))
 
 
@@ -620,10 +617,10 @@
 (defun player-shot-mothership (s)
   (if *mothership*
       (let ((m *mothership*))
-	(if (and (<= (mothership-x m) (x s))
-		 (>= (+ (mothership-x m) 64) (+ (x s) 2))
-		 (<= (mothership-y m) (y s))
-		 (>= (+ (mothership-y m) 32) (y s)))
+	(if (and (<= (x m) (x s))
+		 (>= (+ (x m) 64) (+ (x s) 2))
+		 (<= (y m) (y s))
+		 (>= (+ (y m) 32) (y s)))
 	    (progn (create-mothership-explosion m)
 		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
 		   (setf *mothership* nil)
@@ -688,24 +685,24 @@
 ;;;; CALCULATE-MOTHERSHIP-SCORE function
 
 (defun calculate-mothership-score (m)
-  (let ((mid (+ (mothership-x m) 32))
+  (let ((mid (+ (x m) 32))
 	(sect (/ *game-width* 4)))
     (cond ((<= mid sect)
-	   (if (< (mothership-dx m) 0)
+	   (if (< (dx m) 0)
 	       50
 	       300))
 
 	  ((<= mid (* sect 2))
-	   (if (< (mothership-dx m) 0)
+	   (if (< (dx m) 0)
 	       100
 	       150))
 
 	  ((<= mid (* sect 3))
-	   (if (< (mothership-dx m) 0)
+	   (if (< (dx m) 0)
 	       150
 	       100))
 
-	  (t (if (< (mothership-dx m) 0)
+	  (t (if (< (dx m) 0)
 		 300
 		 50)))))
 
@@ -856,38 +853,25 @@
 
 
 (defun load-sprite-sheet ()
-					; enemy sprite sheet
+  ; enemy sprite sheet
   (setf *ss-enemy*
 	(make-instance 'sprite-sheet-object
 		       :image *gfx-ss-enemy*
 		       :cells '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
 		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32))))
-  
-  ;; (setf *ss-enemy* (sdl-image:load-image *gfx-ss-enemy*))
-  
-  ;; (setf *cells* '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
-  ;; 		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32)))
+ 
 
-  ;; (setf (sdl:cells *ss-enemy*) *cells*)
-
-					; player sprite sheet
+  ; player sprite sheet
   (setf *ss-player*
 	(make-instance 'sprite-sheet-object
 		       :image *gfx-ss-player*
 		       :cells '((0 0 52 32) (0 32 52 32) (0 64 52 32))))
 	
-  ;; (setf *ss-player* (sdl-image:load-image *gfx-ss-player*))
-  
-  ;; (setf *cells* '((0 0 52 32) (0 32 52 32) (0 64 52 32)))
-
-  ;; (setf (sdl:cells *ss-player*) *cells*)
-
-  ; mothership sprite sheet
-  (setf *ss-mothership* (sdl-image:load-image *gfx-ss-mothership*))
-
-  (setf *cells* '((0 0 64 32) (0 32 64 32) (0 64 64 32)))
-
-  (setf (sdl:cells *ss-mothership*) *cells*)
+					; mothership sprite sheet
+  (setf *ss-mothership*
+	(make-instance 'sprite-sheet-object
+		       :image *gfx-ss-mothership*
+		       :cells '((0 0 64 32) (0 32 64 32) (0 64 64 32))))
 )
 
 
