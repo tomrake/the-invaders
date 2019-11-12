@@ -128,20 +128,40 @@
   (blt-draw (sheet obj) (x obj) (y obj) cell))
 
 
-;;;; The Sprite Sheet classs
+;;;; The Image Sheet class
 
-(defclass sprite-sheet-object ()
+(defclass image-sheet ()
   ((image :initarg :image :reader image)
-   (cells :initarg :cells :reader cells)
    (sheet :initform nil)))
 
-
-(defmethod sheet ((ss sprite-sheet-object))
-  "Return the sdl image object for sheet object."
+(defmethod sheet ((ss image-sheet))
   (cond ((slot-value ss 'sheet))
-	(t (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss))
-		 (sdl:cells (slot-value ss 'sheet)) (cells ss))
+	(t (load-sheet ss)
 	   (slot-value ss 'sheet))))
+
+(defmethod load-sheet ((ss image-sheet))
+  (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss)))
+  (slot-value ss 'sheet))
+
+(defmethod img-draw  ((ss image-sheet) (x number) (y number))
+  (sdl:draw-surface-at-* (sheet ss) x y))
+
+;;;; The Sprite Sheet class
+
+(defclass sprite-sheet-object (image-sheet)
+  ((cells :initarg :cells :reader cells)))
+
+
+(defmethod load-sheet :after ((ss sprite-sheet-object))
+  (when (cells ss)
+    (setf (sdl:cells (sheet ss)) (cells ss))))
+
+;; (defmethod sheet ((ss sprite-sheet-object))
+;;   "Return the sdl image object for sheet object."
+;;   (cond ((slot-value ss 'sheet))
+;; 	(t (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss))
+;; 		 (sdl:cells (slot-value ss 'sheet)) (cells ss))
+;; 	   (slot-value ss 'sheet))))
 
 (defmethod blt-draw ((ss sprite-sheet-object) (x number) (y number) (cell number))
   "Draw the cell portion of the sheet object for the cell at x and y offsets."
