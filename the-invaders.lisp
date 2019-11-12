@@ -170,12 +170,11 @@
 ;;;; The enemy class
 
 (defclass enemy (sprite-object)
-  ((sprite :initarg :sprite :initform 0 :accessor sprite)
-   (phase-offset :initarg :phase-offset :initform 0 :reader phase-offset)))
+  ((sprite :initarg :sprite :initform 0 :accessor sprite)))
 
 (defmethod draw-cell ((obj enemy) (phase number))
   "Enemy objects have a more complex cell indexing."
-  (blt-draw (sheet obj) (x obj) (y obj) (+ (sprite obj) (* (phase-offset obj) phase))))
+  (blt-draw (sheet obj) (x obj) (y obj) (+ (sprite obj) phase)))
 
   
 (defclass player (sprite-object)
@@ -308,7 +307,6 @@
 		:x (* x *space-w*)
 		:y (+ (* y *space-h*) dy)
 		:sheet *ss-enemy*
-		:phase-offset 5
 		:sprite y) *enemy*))))
 
 
@@ -316,7 +314,7 @@
 
 (defun draw-enemy ()
   (loop for e in *enemy*
-     do (draw-cell e (mod (mod (x e) *space-h* ) 2))))
+     do (draw-cell e (mod (/ (x e) 2) 10))))
 
 ;;;; UPDATE-ENEMY function
 
