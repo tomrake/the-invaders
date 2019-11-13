@@ -37,12 +37,16 @@
 
 (defparameter *pause* nil)
 
-(defparameter *player* nil)
+(defparameter *ship* nil)
 (defparameter *player-lives* 3)
 (defparameter *player-level* 1)
 (defparameter *player-shots* nil)
 (defparameter *player-score* 0)
 (defparameter *player-explosion* nil)
+
+(defparameter *ship* nil)
+
+
 
 (defparameter *enemy* nil)
 (defparameter *enemy-count* 0)
@@ -63,13 +67,13 @@
 (defparameter *mothership-engine* nil)
 (defparameter *soundfx* nil)
 
-(defparameter *ss-player* nil)
+(defparameter *ss-ship* nil)
 (defparameter *ss-enemy* nil)
 (defparameter *ss-mothership* nil)
 (defparameter *cells* nil)
 
 ;;;; GFX Params
-(defparameter *gfx-ss-player* (merge-pathnames "spritesheet_player.png" *gfx-root*))
+(defparameter *gfx-ss-ship* (merge-pathnames "spritesheet_player.png" *gfx-root*))
 (defparameter *gfx-ss-enemy* (merge-pathnames "spritesheet_enemy.png" *gfx-root*))
 (defparameter *gfx-ss-mothership* (merge-pathnames "spritesheet_mothership.png" *gfx-root*))
 (defparameter *gfx-explosion-enemy* (merge-pathnames "explosion-1.png" *gfx-root*))
@@ -177,10 +181,10 @@
   (draw-cell obj (+ (sprite obj)
 		    (mod (/ (x obj) 2) 10))))
 
-(defclass player (sprite-object)
+(defclass ship (sprite-object)
   ())
   
-(defmethod draw-cell ((obj player) (cell number))
+(defmethod draw-cell ((obj ship) (cell number))
   "The player ship is centered on the gun 26 pixels from the edge."
   (blt-draw (sheet obj) ( - (x obj) 26) (y obj) cell))
 
@@ -430,12 +434,12 @@
 ;;;; ENEMY-SHOT-PLAYER function
 
 (defun enemy-shot-player (s)
-  (let ((p *player*))
+  (let ((p *ship*))
     (when (and (<= (- (x p) 26) (x s))
 		 (>= (+ (x p) 26) (+ (x s) 2))
 		 (<= (y p) (y s))
 		 (>= (+ (y p) 32) (y s)))
-	    (create-player-explosion)
+	    (create-ship-explosion)
 	    (setf *player-lives* (decf *player-lives*))
 	    (play-sound 4)
 	    (setf (x p) 400)
@@ -542,20 +546,20 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; PLAYER ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;; CREATE-PLAYER function
+;;;; CREATE-SHIP function
 
-(defun create-player ()
-  (setf *player* (make-instance 'player :x 400 :y 540 :sheet *ss-player*)))
+(defun create-ship ()
+  (setf *ship* (make-instance 'ship :x 400 :y 540 :sheet *ss-ship*)))
 
 
-;;;; DRAW-PLAYER-SHIP function
+;;;; DRAW-SHIP function
 
-(defun draw-player-ship (p)
+(defun draw-ship (p)
    (draw-cell  p  (mod *game-ticks* 3)))
 
-;;;; MOVE-PLAYER-SHIP function
+;;;; MOVE-SHIP function
 
-(defun move-player-ship (p direction)
+(defun move-ship (p direction)
   (cond ((equalp direction 'left) (progn (setf (x p) (- (x p) 4))
 					 (if (<= (x p) 26)
 					     (setf (x p) 26))))
@@ -631,11 +635,11 @@
 		   (play-sound 5))))))
 
 
-;;;; CREATE-PLAYER-EXPLOSION function
+;;;; CREATE-SHIP-EXPLOSION function
 
-(defun create-player-explosion ()
-  (push (make-player-explosion :x (x *player*)
-			       :y (y *player*)
+(defun create-ship-explosion ()
+  (push (make-player-explosion :x (x *ship*)
+			       :y (y *ship*)
 			       :time 20)
 	*player-explosion*))
 
@@ -780,7 +784,7 @@
     (deploy-mothership))
 
   (display-level)
-  (draw-player-ship *player*)
+  (draw-ship *ship*)
   (draw-enemy)
   (draw-mothership)
   (draw-shot)
@@ -852,7 +856,7 @@
 
 (defun initialize-game ()
   (setf *game-state* 0)
-  (create-player))
+  (create-ship))
 
 
 (defun load-sprite-sheet ()
@@ -865,9 +869,9 @@
  
 
   ; player sprite sheet
-  (setf *ss-player*
+  (setf *ss-ship*
 	(make-instance 'sprite-sheet-object
-		       :image *gfx-ss-player*
+		       :image *gfx-ss-ship*
 		       :cells '((0 0 52 32) (0 32 52 32) (0 64 52 32))))
 	
 					; mothership sprite sheet
@@ -966,12 +970,12 @@
 			 (:sdl-key-q (if (= *game-state* 1)
 					 (change-game-state)))
 			 (:sdl-key-z (if (= *game-state* 1)
-					 (fire-shot *player*)))
+					 (fire-shot *ship*)))
 			 (:sdl-key-space (continue-option))
 			 (:sdl-key-escape (sdl:push-quit-event))))
       (:key-up-event (:key key)
 		     (case key))
       (:idle ()
-	     (when (sdl:get-key-state :sdl-key-left) (move-player-ship *player* 'left))
-	     (when (sdl:get-key-state :sdl-key-right) (move-player-ship *player* 'right))
+	     (when (sdl:get-key-state :sdl-key-left) (move-ship *ship* 'left))
+	     (when (sdl:get-key-state :sdl-key-right) (move-ship *ship* 'right))
 	     (render)))))
