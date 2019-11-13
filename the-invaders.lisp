@@ -172,11 +172,11 @@
 (defclass enemy (sprite-object)
   ((sprite :initarg :sprite :initform 0 :accessor sprite)))
 
-(defmethod draw-cell ((obj enemy) (phase number))
-  "Enemy objects have a more complex cell indexing."
-  (blt-draw (sheet obj) (x obj) (y obj) (+ (sprite obj) phase)))
 
-  
+(defmethod draw ((obj enemy))
+  (draw-cell obj (+ (sprite obj)
+		    (mod (/ (x obj) 2) 10))))
+
 (defclass player (sprite-object)
   ())
   
@@ -203,6 +203,11 @@
 
 (defclass mothership (sprite-object) 
   ())
+
+(defmethod draw ((obj mothership))
+  (draw-cell obj (floor (mod *game-ticks* 9) 3)))
+
+
 
 (defstruct mothership-explosion
   (x 0)
@@ -314,7 +319,7 @@
 
 (defun draw-enemy ()
   (loop for e in *enemy*
-     do (draw-cell e (mod (/ (x e) 2) 10))))
+     do (draw e)))
 
 ;;;; UPDATE-ENEMY function
 
@@ -487,8 +492,8 @@
 
 (defun draw-mothership ()
   (if *mothership*
-      (let ((m *mothership*))
-	(blt-draw (sheet m) (x m) (y m) (floor (mod *game-ticks* 9) 3)))))
+      (draw *mothership*)))
+
 
 
 ;;;; UPDATE-MOTHERSHIP function
