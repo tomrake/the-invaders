@@ -439,10 +439,7 @@
 		      (setf *enemy-direction* 'left)))))
 
   (enemy-hit-bottom)
-
-  (dotimes (n (ceiling (/ *player-level* 5)))
-    (if (< (random 100) (+ 20 *player-level*))
-	(fire-enemy-shot))))
+  (fire-enemy-shot))
 
 
 ;;; ENEMY-HIT-BOTTOM function
@@ -469,12 +466,15 @@
 ;;;; FIRE-ENEMY-SHOT function
 
 (defun fire-enemy-shot ()
-  (let ((enemy (random-element *enemy*)))
-    (push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
-			 :y (+ (y enemy) 32)
-			 :dx 0
-			 :dy (+ (random 3) 3)) *enemy-shots*)
-    (play-sound 2)))
+  (dotimes (n (ceiling (/ *player-level* 5)))
+    (when (< (random 100) (+ 20 *player-level*))
+
+      (let ((enemy (random-element *enemy*)))
+	(push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
+			     :y (+ (y enemy) 32)
+			     :dx 0
+			     :dy (+ (random 3) 3)) *enemy-shots*)
+	(play-sound 2)))))
 
 
 ;;;; DRAW-ENEMY-SHOT function
