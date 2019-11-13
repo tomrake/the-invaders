@@ -191,8 +191,14 @@
   (draw-cell obj (+ (sprite obj)
 		    (mod (/ (x obj) 2) 10))))
 
+(defmethod remove-object ((obj enemy))
+  (setf *enemy* (remove obj *enemy*)))
+
 (defclass ship (sprite-object)
   ())
+
+(defmethod remove-object ((obj ship))
+  (setf *ship* nil))
   
 (defmethod draw-cell ((obj ship) (cell number))
   "The player ship is centered on the gun 26 pixels from the edge."
@@ -200,6 +206,9 @@
 
 (defclass player-shot (game-object)
   ())
+
+(defmethod remove-object ((obj player-shot))
+    (setf *player-shots* (remove obj *player-shots*)))
 
 ;;;; Countdown objects allow objects to change at the creation of a countdown
 ;;;; And then at the cleanup when the count is zero.
@@ -253,6 +262,9 @@
 (defclass enemy-shot (game-object)
   ())
 
+(defmethod remove-object ((obj enemy-shot))
+  (setf *enemy-shots* (remove obj *enemy-shots*)))
+
 (defstruct enemy-explosion
   (x 0)
   (y 0)
@@ -260,6 +272,10 @@
 
 (defclass mothership (sprite-object) 
   ())
+
+
+(defmethod remove-object ((obj mothership))
+  (setf *mothership* nil))
 
 (defmethod draw ((obj mothership))
   (draw-cell obj (floor (mod *game-ticks* 9) 3)))
@@ -476,7 +492,7 @@
 (defun update-enemy-shots ()
   (loop for f in *enemy-shots*
      do (progn (if (> (y f) *game-height*)
-		   (setf *enemy-shots* (remove f *enemy-shots*))
+		   (remove-object f)
 		   (delta-move f))
 	       (enemy-shot-player f)))
 
@@ -496,7 +512,7 @@
 	    (setf *player-lives* (decf *player-lives*))
 	    (play-sound 4)
 	    (setf (x p) 400)
-	    (setf *enemy-shots* (remove s *enemy-shots*)))))
+	    (remove-object s))))
 
 
 ;;;; CREATE-ENEMY-EXPLOSION function
@@ -662,7 +678,7 @@
 	    (progn (create-enemy-explosion (x e) (y e))
 		   (setf *enemy* (remove e *enemy*))
 		   (play-sound 3)
-		   (setf *player-shots* (remove s *player-shots*))
+		   (remove-object s)
 		   (setf *player-score* (+ *player-score* 10))
 		   (determine-enemy-speed))))
 
@@ -683,7 +699,7 @@
 		 (>= (+ (y m) 32) (y s)))
 	    (progn (create-mothership-explosion m)
 		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
-		   (setf *mothership* nil)
+		   (remove-object m)
 		   (halt-mothership-engine)
 		   (play-sound 5))))))
 
