@@ -70,14 +70,15 @@
 (defparameter *ss-ship* nil)
 (defparameter *ss-enemy* nil)
 (defparameter *ss-mothership* nil)
-(defparameter *cells* nil)
+(defparameter *img-explosion-enemy* nil)
+(defparameter *img-explosion-ship* nil)
 
 ;;;; GFX Params
 (defparameter *gfx-ss-ship* (merge-pathnames "spritesheet_player.png" *gfx-root*))
 (defparameter *gfx-ss-enemy* (merge-pathnames "spritesheet_enemy.png" *gfx-root*))
 (defparameter *gfx-ss-mothership* (merge-pathnames "spritesheet_mothership.png" *gfx-root*))
 (defparameter *gfx-explosion-enemy* (merge-pathnames "explosion-1.png" *gfx-root*))
-(defparameter *gfx-explosion-player* (merge-pathnames "explosion-2.png" *gfx-root*))
+(defparameter *gfx-explosion-ship* (merge-pathnames "explosion-2.png" *gfx-root*))
 (defparameter *gfx-space-bg* (merge-pathnames "space-bg.jpg" *gfx-root*))
 (defparameter *gfx-title-bg* (merge-pathnames "title-bg.jpg" *gfx-root*))
 (defparameter *gfx-game-over-bg* (merge-pathnames "game-over-bg.jpg" *gfx-root*))
@@ -121,6 +122,15 @@
   "Change the object position by one step."
   (incf (x obj) (dx obj))
   (incf (y obj) (dy obj)))
+
+
+;;; The Image object class
+
+(defclass image-object (game-object)
+  ((image :initarg :image :reader image)))
+
+(defmethod draw-image ((obj image-object))
+  (img-draw (image obj) (x obj) (y ob)))
 
 ;;; The Sprite object class
 
@@ -190,6 +200,49 @@
 
 (defclass player-shot (game-object)
   ())
+
+;;;; Countdown objects allow objects to change at the creation of a countdown
+;;;; And then at the cleanup when the count is zero.
+
+(defclass countdown-object ()
+  ((countdown :initarg :countdown :initform 0 :accessor countdown)
+   (trigger-hooks :initarg :trigger-hooks :initform nil)
+   (cleanup-hooks :initarg :cleanup-hooks :initform nil)))
+
+(defmethod active-countdown ((obj countdown-object))
+  (countdown obj))
+
+(defmethod add-trigger-hook ((obj countdown-object) (thunk function))
+  "Add a function to perfom on count start."
+  (push (slot-value obj 'trigger-hooks) thunk))
+
+
+(defmethod add-cleanup-hook ((obj countdown-object) (thunk function))
+  "Add a function to perform on countdown end."
+  (push (slot-value obj 'cleanup-hooks) thunk))
+
+(defmethod run-triggers ((obj countdown-object))
+  (do-list (func (obj trigger-hooks)) (funcall func)))
+
+
+(defmethod run-cleanup ((obj countdown-object))
+  (do-list (func (obj cleanup-hooks)) (funcall func)))
+
+
+(defmethod next ((obj countdown-object))
+  "Do the next time step. Run cleanup if time is zero or less."
+  (cond  ((null (countdown obj)))
+	 ((< (countdown obj) 1)
+	  (run-cleanup obj)
+	  (setf (countdown obj) nil))
+         (t (decf (countdown obj)))))
+
+(defmethod set-countdown ((obj countdown-object) (count integer))
+  "Cause the triggers to run and set the countdown clock to count."
+  (when (and (not (null count)) (> count 0))
+    (setf (countdown obj) count)
+    (run-triggers obj)))
+
 
 (defstruct player-explosion
   (x 0)
@@ -528,7 +581,7 @@
 	     (setf *mothership-explosion* nil)
 	     (progn (setf (mothership-explosion-time m)
 		(decf (mothership-explosion-time m)))
-		(sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-player*)
+		(sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-ship*)
 			(mothership-explosion-x m)
 			(mothership-explosion-y m)))))))
 
@@ -651,7 +704,7 @@
      do	(progn (setf (player-explosion-time p) (decf (player-explosion-time p)))
 	       (if (zerop (player-explosion-time p))
 		   (setf *player-explosion* (remove p *player-explosion*))
-		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-player*)
+		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-ship*)
 					  (player-explosion-x p) (player-explosion-y p))))))
 
 
@@ -879,7 +932,17 @@
 	(make-instance 'sprite-sheet-object
 		       :image *gfx-ss-mothership*
 		       :cells '((0 0 64 32) (0 32 64 32) (0 64 64 32))))
-)
+
+  (setf *img-explosion-enemy*
+	(make-instance 'image-sheet
+		       :image *gfx-explosion-enemy*))
+  
+  (setf *img-explosion-ship*
+	(make-instance 'image-sheet
+		       :image *gfx-explosion-ship*))
+  
+  )
+
 
 
 ;;;; SETUP-AUDIO function
