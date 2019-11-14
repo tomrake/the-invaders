@@ -141,6 +141,11 @@
   "Draw the cell of spite-object from the sprite sheet."
   (blt-draw (sheet obj) (x obj) (y obj) cell))
 
+(defclass player-shot (game-object)
+  ())
+
+(defmethod remove-object ((obj player-shot))
+  (setf *player-shots* (remove obj *player-shots*)))
 
 ;;;; The Image Sheet class
 
@@ -194,6 +199,19 @@
 (defmethod remove-object ((obj enemy))
   (setf *enemy* (remove obj *enemy*)))
 
+(defmethod explode ((target enemy) (projectile player-shot))
+  (let ((e (make-instance 'exploding-enemy :x (x target) :y (y target)
+			  :image *img-explosion-enemy*)))
+    (push e *enemy-explosion*)
+    (add-cleanup-hook e #'(lambda() (remove-object e)))
+    ;; Remove the two objects
+    (remove-object target)
+    (remove-object projectile)
+    (determine-enemy-speed)
+    (play-sound 3)
+    (incf *player-score* 10)
+    (set-countdown e 6)))
+
 (defclass ship (sprite-object)
   ())
 
@@ -204,11 +222,7 @@
   "The player ship is centered on the gun 26 pixels from the edge."
   (blt-draw (sheet obj) ( - (x obj) 26) (y obj) cell))
 
-(defclass player-shot (game-object)
-  ())
 
-(defmethod remove-object ((obj player-shot))
-    (setf *player-shots* (remove obj *player-shots*)))
 
 ;;;; Countdown objects allow objects to change at the creation of a countdown
 ;;;; And then at the cleanup when the count is zero.
@@ -223,19 +237,19 @@
 
 (defmethod add-trigger-hook ((obj countdown-object) (thunk function))
   "Add a function to perfom on count start."
-  (push (slot-value obj 'trigger-hooks) thunk))
+  (push thunk (slot-value obj 'trigger-hooks)))
 
 
 (defmethod add-cleanup-hook ((obj countdown-object) (thunk function))
   "Add a function to perform on countdown end."
-  (push (slot-value obj 'cleanup-hooks) thunk))
+  (push thunk (slot-value obj 'cleanup-hooks)))
 
 (defmethod run-triggers ((obj countdown-object))
-  (do-list (func (obj trigger-hooks)) (funcall func)))
+  (dolist (func (slot-value obj 'trigger-hooks)) (funcall func)))
 
 
 (defmethod run-cleanup ((obj countdown-object))
-  (do-list (func (obj cleanup-hooks)) (funcall func)))
+  (dolist (func (slot-value obj 'cleanup-hooks)) (funcall func)))
 
 
 (defmethod next ((obj countdown-object))
@@ -264,6 +278,17 @@
 
 (defmethod remove-object ((obj enemy-shot))
   (setf *enemy-shots* (remove obj *enemy-shots*)))
+
+
+(defclass exploding-enemy (countdown-object image-object)
+  ())
+
+(defmethod draw ((obj exploding-enemy))
+  (img-draw (image obj) (x obj) (y obj)))
+
+(defmethod remove-object ((obj exploding-enemy))
+  (setf *enemy-explosion* (remove obj *enemy-explosion*)))
+
 
 (defstruct enemy-explosion
   (x 0)
@@ -520,16 +545,14 @@
 (defun create-enemy-explosion (x y)
   (push (make-enemy-explosion :x x :y y :time 6) *enemy-explosion*))
 
+(defun update-enemy-explosion ()
+  (loop for e in *enemy-explosion* do (next e)))
+
 
 ;;;; DRAW-ENEMY-EXPLOSION function
 
 (defun draw-enemy-explosion ()
-  (loop for e in *enemy-explosion*
-     do (progn (setf (enemy-explosion-time e) (decf (enemy-explosion-time e)))
-	       (if (zerop (enemy-explosion-time e))
-		   (setf *enemy-explosion* (remove e *enemy-explosion*))
-		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-enemy*)
-					  (enemy-explosion-x e) (enemy-explosion-y e))))))
+  (loop for e in *enemy-explosion* do (draw e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; MOTHERSHIP ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -671,16 +694,11 @@
 
 (defun player-shot-enemy (s)
   (loop for e in *enemy*
-     do (if (and (<= (x e) (x s))
+     do (when (and (<= (x e) (x s))
 		 (>= (+ (x e) 48) (+ (x s) 2))
 		 (<= (y e) (y s))
 		 (>= (+ (y e) 32) (y s)))
-	    (progn (create-enemy-explosion (x e) (y e))
-		   (setf *enemy* (remove e *enemy*))
-		   (play-sound 3)
-		   (remove-object s)
-		   (setf *player-score* (+ *player-score* 10))
-		   (determine-enemy-speed))))
+	  (explode e s)))
 
   (when (end-of-level-p)
       (calculate-score)
@@ -850,7 +868,8 @@
     (update-mothership)
     (update-player-shots)
     (update-enemy-shots)
-    (deploy-mothership))
+    (deploy-mothership)
+    (update-enemy-explosion))
 
   (display-level)
   (draw-ship *ship*)
