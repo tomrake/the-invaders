@@ -14,17 +14,19 @@ baseurl: "/the-invaders"
 # Of course don't forget to change the username and projectname to YOUR username and project
 
 # Name of website
-title: The Invaders - refactored
+title: The Invaders - Refactoring
 
 # Short description of your site
-description:  My personal code wanderings.
+description:  Space Invaded in LISP need to be scratched.
 
 # --- Navigation bar options --- #
 
 # List of links in the navigation bar
 navbar-links:
   About Me: "about"
-  Base Repo: "https://github.com/sebity/the-invaders"
+  Original Version:
+    - Sebity Game Description: "http://www.sebity.com/games/the-invaders.php"
+    - Sebity Repo: "https://github.com/sebity/the-invaders"
   LISP Resources:
     - SBCL: "http://www.sbcl.org/"
     - emacs: "https://www.gnu.org/software/emacs/"
