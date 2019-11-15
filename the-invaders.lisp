@@ -42,7 +42,7 @@
 (defparameter *player-level* 1)
 (defparameter *player-shots* nil)
 (defparameter *player-score* 0)
-(defparameter *player-explosion* nil)
+(defparameter *exploding-ship* nil)
 
 (defparameter *ship* nil)
 
@@ -52,13 +52,13 @@
 (defparameter *enemy-count* 0)
 (defparameter *enemy-shots* nil)
 (defparameter *enemy-direction* 'right)
-(defparameter *enemy-explosion* nil)
+(defparameter *exploding-enemy* nil)
 
 (defparameter *enemy-move-delay* 60)
 (defparameter *enemy-move-space* 10)
 
 (defparameter *mothership* nil)
-(defparameter *mothership-explosion* nil)
+(defparameter *exploding-mothership* nil)
 
 (defparameter *game-ticks* 0)
 
@@ -109,45 +109,53 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; STRUCTS/CLASSES ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defclass game-object ()
-  ((x :initarg :x :initform 0 :accessor x)
-   (y :initarg :y :initform 0 :accessor y)
-   (dx :initarg :dx :initform 0 :accessor dx)
-   (dy :initarg :dy :initform 0 :accessor dy)))
+;;;; THE COUNTDOWN CLASS
 
-(defmethod draw ((obj game-object))
-  (error "Nothing to draw!"))
+;;;; Countdown objects allow objects to change at the creation of a countdown
+;;;; And then at the cleanup when the count is zero.
 
-(defmethod delta-move ((obj game-object))
-  "Change the object position by one step."
-  (incf (x obj) (dx obj))
-  (incf (y obj) (dy obj)))
+(defclass delayed-action ()
+  ((countdown :initarg :countdown :initform 0 :accessor countdown)
+   (trigger-hooks :initarg :trigger-hooks :initform nil)
+   (cleanup-hooks :initarg :cleanup-hooks :initform nil)))
+
+(defmethod active-countdown ((obj delayed-action))
+  (countdown obj))
+
+(defmethod add-trigger-hook ((obj delayed-action) (thunk function))
+  "Add a function to perfom on count start."
+  (push thunk (slot-value obj 'trigger-hooks)))
+
+(defmethod add-cleanup-hook ((obj delayed-action) (thunk function))
+  "Add a function to perform on countdown end."
+  (push thunk (slot-value obj 'cleanup-hooks)))
+
+(defmethod run-triggers ((obj delayed-action))
+  (dolist (func (slot-value obj 'trigger-hooks)) (funcall func)))
 
 
-;;; The Image object class
+(defmethod run-cleanup ((obj delayed-action))
+  (dolist (func (slot-value obj 'cleanup-hooks)) (funcall func)))
 
-(defclass image-object (game-object)
-  ((image :initarg :image :reader image)))
+(defmethod next ((obj delayed-action))
+  "Do the next time step. Run cleanup if time is zero or less."
+  (cond  ((null (countdown obj)))
+	 ((< (countdown obj) 1)
+	  (run-cleanup obj)
+	  (setf (countdown obj) nil))
+         (t (decf (countdown obj)))))
 
-(defmethod draw-image ((obj image-object))
-  (img-draw (image obj) (x obj) (y ob)))
+(defmethod trigger-delay ((obj delayed-action) (count integer))
+  "Cause the triggers to run and set the countdown clock to count."
+  (when (and (not (null count)) (> count 0))
+    (setf (countdown obj) count)
+    (run-triggers obj)))
 
-;;; The Sprite object class
 
-(defclass sprite-object (game-object)
-  ((sheet :initarg :sheet :reader sheet)))
 
-(defmethod draw-cell ((obj sprite-object) (cell number))
-  "Draw the cell of spite-object from the sprite sheet."
-  (blt-draw (sheet obj) (x obj) (y obj) cell))
+;;;; THE *-sheet CLASSES THESE COULD BE PLACED IN THE GPU FOR QUICK COPYING
 
-(defclass player-shot (game-object)
-  ())
-
-(defmethod remove-object ((obj player-shot))
-  (setf *player-shots* (remove obj *player-shots*)))
-
-;;;; The Image Sheet class
+;;;; The IMAGE-SHEET class
 
 (defclass image-sheet ()
   ((image :initarg :image :reader image)
@@ -165,149 +173,106 @@
 (defmethod img-draw  ((ss image-sheet) (x number) (y number))
   (sdl:draw-surface-at-* (sheet ss) x y))
 
-;;;; The Sprite Sheet class
+;;;; The SPRITE-SHEET class
 
-(defclass sprite-sheet-object (image-sheet)
+(defclass sprite-sheet (image-sheet)
   ((cells :initarg :cells :reader cells)))
 
 
-(defmethod load-sheet :after ((ss sprite-sheet-object))
+(defmethod load-sheet :after ((ss sprite-sheet))
   (when (cells ss)
     (setf (sdl:cells (sheet ss)) (cells ss))))
 
-;; (defmethod sheet ((ss sprite-sheet-object))
-;;   "Return the sdl image object for sheet object."
-;;   (cond ((slot-value ss 'sheet))
-;; 	(t (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss))
-;; 		 (sdl:cells (slot-value ss 'sheet)) (cells ss))
-;; 	   (slot-value ss 'sheet))))
 
-(defmethod blt-draw ((ss sprite-sheet-object) (x number) (y number) (cell number))
+(defmethod blt-draw ((ss sprite-sheet) (x number) (y number) (cell number))
   "Draw the cell portion of the sheet object for the cell at x and y offsets."
   (sdl:draw-surface-at-* (sheet ss) x y :cell cell))
 
-;;;; The enemy class
-
-(defclass enemy (sprite-object)
-  ((sprite :initarg :sprite :initform 0 :accessor sprite)))
-
-
-(defmethod draw ((obj enemy))
-  (draw-cell obj (+ (sprite obj)
-		    (mod (/ (x obj) 2) 10))))
-
-(defmethod remove-object ((obj enemy))
-  (setf *enemy* (remove obj *enemy*)))
-
-(defmethod explode ((target enemy) (projectile player-shot))
-  (let ((e (make-instance 'exploding-enemy :x (x target) :y (y target)
-			  :image *img-explosion-enemy*)))
-    (push e *enemy-explosion*)
-    (add-cleanup-hook e #'(lambda() (remove-object e)))
-    ;; Remove the two objects
-    (remove-object target)
-    (remove-object projectile)
-    (determine-enemy-speed)
-    (play-sound 3)
-    (incf *player-score* 10)
-    (set-countdown e 6)))
-
-(defclass ship (sprite-object)
-  ())
-
-(defmethod remove-object ((obj ship))
-  (setf *ship* nil))
-  
-(defmethod draw-cell ((obj ship) (cell number))
-  "The player ship is centered on the gun 26 pixels from the edge."
-  (blt-draw (sheet obj) ( - (x obj) 26) (y obj) cell))
 
 
 
-;;;; Countdown objects allow objects to change at the creation of a countdown
-;;;; And then at the cleanup when the count is zero.
+;;;; THE DISPLAYABLE
 
-(defclass countdown-object ()
-  ((countdown :initarg :countdown :initform 0 :accessor countdown)
-   (trigger-hooks :initarg :trigger-hooks :initform nil)
-   (cleanup-hooks :initarg :cleanup-hooks :initform nil)))
+;;; This is the root of the Drawable game objects
 
-(defmethod active-countdown ((obj countdown-object))
-  (countdown obj))
+(defclass displayable ()
+  ((x :initarg :x :initform 0 :accessor x)
+   (y :initarg :y :initform 0 :accessor y)
+   (dx :initarg :dx :initform 0 :accessor dx)
+   (dy :initarg :dy :initform 0 :accessor dy)))
 
-(defmethod add-trigger-hook ((obj countdown-object) (thunk function))
-  "Add a function to perfom on count start."
-  (push thunk (slot-value obj 'trigger-hooks)))
+(defmethod draw ((obj displayable))
+  (error "Nothing to draw!"))
 
+(defmethod delta-move ((obj displayable))
+  "Change the object position by one step."
+  (incf (x obj) (dx obj))
+  (incf (y obj) (dy obj)))
 
-(defmethod add-cleanup-hook ((obj countdown-object) (thunk function))
-  "Add a function to perform on countdown end."
-  (push thunk (slot-value obj 'cleanup-hooks)))
+;;;; THE IMAGE-DRAWABLE class
 
-(defmethod run-triggers ((obj countdown-object))
-  (dolist (func (slot-value obj 'trigger-hooks)) (funcall func)))
+;;; These object use a image sheet to draw themselves
 
+(defclass image-drawable (displayable)
+  ((image :initarg :image :reader image)))
 
-(defmethod run-cleanup ((obj countdown-object))
-  (dolist (func (slot-value obj 'cleanup-hooks)) (funcall func)))
-
-
-(defmethod next ((obj countdown-object))
-  "Do the next time step. Run cleanup if time is zero or less."
-  (cond  ((null (countdown obj)))
-	 ((< (countdown obj) 1)
-	  (run-cleanup obj)
-	  (setf (countdown obj) nil))
-         (t (decf (countdown obj)))))
-
-(defmethod set-countdown ((obj countdown-object) (count integer))
-  "Cause the triggers to run and set the countdown clock to count."
-  (when (and (not (null count)) (> count 0))
-    (setf (countdown obj) count)
-    (run-triggers obj)))
-
-
-(defstruct player-explosion
-  (x 0)
-  (y 0)
-  (time 0))
-
-
-(defclass enemy-shot (game-object)
-  ())
-
-(defmethod remove-object ((obj enemy-shot))
-  (setf *enemy-shots* (remove obj *enemy-shots*)))
-
-
-(defclass exploding-enemy (countdown-object image-object)
-  ())
-
-(defmethod draw ((obj exploding-enemy))
+(defmethod draw ((obj image-drawable))
   (img-draw (image obj) (x obj) (y obj)))
 
-(defmethod remove-object ((obj exploding-enemy))
-  (setf *enemy-explosion* (remove obj *enemy-explosion*)))
+;;;; THE SPRITE-DRAWABLE class
 
 
-(defstruct enemy-explosion
-  (x 0)
-  (y 0)
-  (time 0))
+(defclass sprite-drawable (displayable)
+  ((sheet :initarg :sheet :reader sheet)))
 
-(defclass mothership (sprite-object) 
+(defmethod cell-animator ((obj sprite-drawable))
+  (error "subclasses should define a cell-animator method."))
+
+(defmethod draw ((obj sprite-drawable))
+  "Draw the cell of spite-object from the sprite sheet."
+  (blt-draw (sheet obj) (x obj) (y obj) (cell-animator obj)))
+
+;;;; The PLAYER-SHOT
+
+(defclass player-shot (displayable)
   ())
 
+;;;; THE ENEMY CLASS
+
+(defclass enemy (sprite-drawable)
+  ((sprite :initarg :sprite :initform 0 :accessor sprite)))
+
+;;;; The SHIP CLASS
+
+(defclass ship (sprite-drawable)
+  ())
+
+(defclass exploding-ship (delayed-action image-drawable)
+  ())
+
+;;;; THE ENEMY-SHOT class
+
+(defclass enemy-shot (displayable)
+  ())
+
+;;;; THE EXPLODING-ENEMY class
+
+(defclass exploding-enemy (delayed-action image-drawable)
+  ())
+
+;;;; THE MOTHERSHIP class
+
+(defclass mothership (sprite-drawable) 
+  ())
+
+(defmethod cell-animator ((obj mothership))
+  (floor (mod *game-ticks* 9) 3))
 
 (defmethod remove-object ((obj mothership))
   (setf *mothership* nil))
 
-(defmethod draw ((obj mothership))
-  (draw-cell obj (floor (mod *game-ticks* 9) 3)))
 
-
-
-(defstruct mothership-explosion
+(defstruct exploding-mothership
   (x 0)
   (y 0)
   (time 0))
@@ -392,6 +357,36 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; ENEMY ;;;;;;;;;;;;;;;;;;;;;;;;
+
+
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;; CELL-ANIMATOR
+
+(defmethod cell-animator ((obj enemy))
+  (+ (sprite obj) (mod (/ (x obj) 2) 10)))
+
+;;;; REMOVE
+
+(defmethod remove-object ((obj enemy))
+  (setf *enemy* (remove obj *enemy*)))
+
+;;;; EXPLODE
+
+(defmethod explode ((target enemy) (projectile player-shot))
+  (let ((e (make-instance 'exploding-enemy :x (x target) :y (y target)
+			  :image *img-explosion-enemy*)))
+    (push e *exploding-enemy*)
+    (add-cleanup-hook e #'(lambda() (remove-object e)))
+    ;; Remove the two objects
+    (remove-object target)
+    (remove-object projectile)
+    (determine-enemy-speed)
+    (play-sound 3)
+    (incf *player-score* 10)
+    (trigger-delay e 6)))
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
 
 ;;;; CREATE-ENEMY function
@@ -502,6 +497,19 @@
 	(play-sound 2)))))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;; ENEMY-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;; REMOVE
+
+(defmethod remove-object ((obj enemy-shot))
+  (setf *enemy-shots* (remove obj *enemy-shots*)))
+
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
+
+
 ;;;; DRAW-ENEMY-SHOT function
 
 (defun draw-enemy-shot ()
@@ -529,34 +537,45 @@
 
 (defun enemy-shot-player (s)
   (let ((p *ship*))
-    (when (and (<= (- (x p) 26) (x s))
+    (when (and p (<= (- (x p) 26) (x s))
 		 (>= (+ (x p) 26) (+ (x s) 2))
 		 (<= (y p) (y s))
 		 (>= (+ (y p) 32) (y s)))
-	    (create-ship-explosion)
-	    (setf *player-lives* (decf *player-lives*))
-	    (play-sound 4)
-	    (setf (x p) 400)
-	    (remove-object s))))
+      (explode p s))))
 
 
-;;;; CREATE-ENEMY-EXPLOSION function
+;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-ENEMY ;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun create-enemy-explosion (x y)
-  (push (make-enemy-explosion :x x :y y :time 6) *enemy-explosion*))
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
-(defun update-enemy-explosion ()
-  (loop for e in *enemy-explosion* do (next e)))
+;;;; REMOVE
+
+(defmethod remove-object ((obj exploding-enemy))
+  (setf *exploding-enemy* (remove obj *exploding-enemy*)))
 
 
-;;;; DRAW-ENEMY-EXPLOSION function
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
-(defun draw-enemy-explosion ()
-  (loop for e in *enemy-explosion* do (draw e)))
+;;;; CREATE-EXPLODING-ENEMY function
+
+(defun create-exploding-enemy (x y)
+  (push (make-exploding-enemy :x x :y y :time 6) *exploding-enemy*))
+
+(defun update-exploding-enemy ()
+  (loop for e in *exploding-enemy* do (next e)))
+
+
+;;;; DRAW-EXPLODING-ENEMY function
+
+(defun draw-exploding-enemy ()
+  (loop for e in *exploding-enemy* do (draw e)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; MOTHERSHIP ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
 ;;;; DEPLOY-MOTHERSHIP function
 
@@ -602,27 +621,31 @@
 	       (>= (x m) (+ *game-width* 10)))
 	   (setf *mothership* nil)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-MOTHERSHIP ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;; CREATE-MOTHERSHIP-EXPLOSION function
 
-(defun create-mothership-explosion (m)
-  (setf *mothership-explosion* (make-mothership-explosion :x (x m)
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+
+;;;; CREATE-EXPLODING-MOTHERSHIP function
+
+(defun create-exploding-mothership (m)
+  (setf *exploding-mothership* (make-exploding-mothership :x (x m)
 							  :y (y m)
 							  :time 15)))
 
+;;;; DRAW-EXPLODING-MOTHERSHIP function
 
-;;;; DRAW-MOTHERSHIP-EXPLOSION function
-
-(defun draw-mothership-explosion ()
-  (when *mothership-explosion*
-      (let ((m *mothership-explosion*))
-	 (if (zerop (mothership-explosion-time m))
-	     (setf *mothership-explosion* nil)
-	     (progn (setf (mothership-explosion-time m)
-		(decf (mothership-explosion-time m)))
+(defun draw-exploding-mothership ()
+  (when *exploding-mothership*
+      (let ((m *exploding-mothership*))
+	 (if (zerop (exploding-mothership-time m))
+	     (setf *exploding-mothership* nil)
+	     (progn (setf (exploding-mothership-time m)
+		(decf (exploding-mothership-time m)))
 		(sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-ship*)
-			(mothership-explosion-x m)
-			(mothership-explosion-y m)))))))
+			(exploding-mothership-x m)
+			(exploding-mothership-y m)))))))
 
 ;;;; PLAY-MOTHERSHIP-ENGINE function
 
@@ -636,47 +659,87 @@
   (sdl-mixer:halt-music 100))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;; PLAYER ;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;; SHIP ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;; CELL-ANIMATOR
+
+(defmethod cell-animator ((obj ship))
+  (mod *game-ticks* 3))
+
+;;;; REMOVE
+
+(defmethod remove-object ((obj ship))
+  (setf *ship* nil))
+
+;;;; EXPLODE
+
+(defmethod explode ((target ship) (projectile enemy-shot))
+  (let ((e (make-instance 'exploding-ship :x (x target) :y (y target)
+			  :image *img-explosion-ship*)))
+    (push e *exploding-ship*)
+    (add-cleanup-hook e #'(lambda() (remove-object e) (create-ship)))
+    ;; Remove the two objects
+    (remove-object target)
+    (remove-object projectile)
+    (play-sound 4)
+    (decf *player-lives*)
+    (trigger-delay e 20)))
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
 ;;;; CREATE-SHIP function
 
 (defun create-ship ()
-  (setf *ship* (make-instance 'ship :x 400 :y 540 :sheet *ss-ship*)))
+  (unless *ship* 
+    (setf *ship* (make-instance 'ship :x 400 :y 540 :sheet *ss-ship*))))
 
 
 ;;;; DRAW-SHIP function
 
 (defun draw-ship (p)
-   (draw-cell  p  (mod *game-ticks* 3)))
+  (when p
+    (draw p)))
 
 ;;;; MOVE-SHIP function
 
 (defun move-ship (p direction)
-  (cond ((equalp direction 'left) (progn (setf (x p) (- (x p) 4))
-					 (if (<= (x p) 26)
-					     (setf (x p) 26))))
-
-	((equalp direction 'right) (progn (setf (x p) (+ (x p) 4))
-					  (if (>= (x p) (- *game-width* 26))
-					      (setf (x p) (- *game-width* 26)))))))
+  (cond
+    ((null p))
+    ((equalp direction 'left) (setf (x p) (max 0 (- (x p) 4))))
+    ((equalp direction 'right) (setf (x p) (min (- *game-width* 26)(+ (x p) 4))))))
 
 
 ;;;; FIRE-SHOT function
 
-(defun fire-shot (p)
-  (when (zerop (length *player-shots*))
-      (push (make-instance 'player-shot :x (x p) :y (y p) :dy -5 :dx 0) *player-shots*)
-      (play-sound 2)))
+(defun fire-shot (s)
+  (when s ; no ship can't fire
+    (when (zerop (length *player-shots*)) ; Only one shot on play field at a time???
+      (push (make-instance 'player-shot :x (+ (x s) 13) :y (y s) :dy -5 :dx 0) *player-shots*)
+      (play-sound 2))))
 
+;;;;;;;;;;;;;;;;;;;;;;;; PLAYER-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;; REMOVE-OBJECT 
+
+(defmethod remove-object ((obj player-shot))
+  (setf *player-shots* (remove obj *player-shots*)))
+
+;;;; DRAW
+
+(defmethod draw ((shot player-shot))
+  (draw-box (x shot) (y shot) 2 10 255 255 255))
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
 ;;;; DRAW-SHOT function
 
 (defun draw-shot ()
   (loop for f in *player-shots*
      do (draw f)))
-
-(defmethod draw ((shot player-shot))
-  (draw-box (x shot) (y shot) 2 10 255 255 255))
 
 
 ;;;; UPDATE-PLAYER_SHOTS function
@@ -715,31 +778,32 @@
 		 (>= (+ (x m) 64) (+ (x s) 2))
 		 (<= (y m) (y s))
 		 (>= (+ (y m) 32) (y s)))
-	    (progn (create-mothership-explosion m)
+	    (progn (create-exploding-mothership m)
 		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
 		   (remove-object m)
 		   (halt-mothership-engine)
 		   (play-sound 5))))))
 
+;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-SHIP ;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;;; CREATE-SHIP-EXPLOSION function
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
-(defun create-ship-explosion ()
-  (push (make-player-explosion :x (x *ship*)
-			       :y (y *ship*)
-			       :time 20)
-	*player-explosion*))
+(defmethod remove-object ((obj exploding-ship))
+  (setf *exploding-ship* (remove obj *exploding-ship*)))
 
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
-;;;; DRAW-PLAYER-EXPLOSION function
+;;;; UPDATE-EXPLODING-SHIP function
 
-(defun draw-player-explosion ()
-  (loop for p in *player-explosion*
-     do	(progn (setf (player-explosion-time p) (decf (player-explosion-time p)))
-	       (if (zerop (player-explosion-time p))
-		   (setf *player-explosion* (remove p *player-explosion*))
-		   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-ship*)
-					  (player-explosion-x p) (player-explosion-y p))))))
+(defun update-exploding-ship ()
+  (loop for e in *exploding-ship*
+     do (next e))
+  )
+;;;; DRAW-EXPLODING-SHIP function
+
+(defun draw-exploding-ship ()
+  (loop for p in *exploding-ship*
+     do	(draw p)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; LEVEL ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -820,7 +884,7 @@
     (setf *mothership* nil)
     (setf *player-shots* nil)
     (setf *enemy-shots* nil)
-    (setf *enemy-explosion* nil)))
+    (setf *exploding-enemy* nil)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; SCREENS ;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -869,7 +933,8 @@
     (update-player-shots)
     (update-enemy-shots)
     (deploy-mothership)
-    (update-enemy-explosion))
+    (update-exploding-enemy)
+    (update-exploding-ship))
 
   (display-level)
   (draw-ship *ship*)
@@ -877,9 +942,9 @@
   (draw-mothership)
   (draw-shot)
   (draw-enemy-shot)
-  (draw-player-explosion)
-  (draw-enemy-explosion)
-  (draw-mothership-explosion)
+  (draw-exploding-ship)
+  (draw-exploding-enemy)
+  (draw-exploding-mothership)
   (draw-game-ui))
 
 
@@ -926,16 +991,17 @@
 ;;;; RESET-GAME function
 
 (defun reset-game ()
+  (create-ship)
   (setf *random-state* (make-random-state t))
   (setf *pause* nil)
   (setf *player-level* 0)
   (setf *player-lives* 3)
   (setf *player-score* 0)
   (setf *player-shots* nil)
-  (setf *player-explosion* nil)
+  (setf *exploding-ship* nil)
   (setf *enemy-shots* nil)
-  (setf *enemy-explosion* nil)
-  (setf *mothership-explosion* nil)
+  (setf *exploding-enemy* nil)
+  (setf *exploding-mothership* nil)
   (new-level))
 
 
@@ -943,14 +1009,13 @@
 ;;;; INITIALIZE-GAME function
 
 (defun initialize-game ()
-  (setf *game-state* 0)
-  (create-ship))
+  (setf *game-state* 0)  (create-ship))
 
 
 (defun load-sprite-sheet ()
   ; enemy sprite sheet
   (setf *ss-enemy*
-	(make-instance 'sprite-sheet-object
+	(make-instance 'sprite-sheet
 		       :image *gfx-ss-enemy*
 		       :cells '((0 0 48 32) (48 0 48 32) (96 0 48 32) (144 0 48 32) (192 0 48 32)
 		  (0 32 48 32) (48 32 48 32) (96 32 48 32) (144 32 48 32) (192 32 48 32))))
@@ -958,13 +1023,13 @@
 
   ; player sprite sheet
   (setf *ss-ship*
-	(make-instance 'sprite-sheet-object
+	(make-instance 'sprite-sheet
 		       :image *gfx-ss-ship*
 		       :cells '((0 0 52 32) (0 32 52 32) (0 64 52 32))))
 	
 					; mothership sprite sheet
   (setf *ss-mothership*
-	(make-instance 'sprite-sheet-object
+	(make-instance 'sprite-sheet
 		       :image *gfx-ss-mothership*
 		       :cells '((0 0 64 32) (0 32 64 32) (0 64 64 32))))
 
