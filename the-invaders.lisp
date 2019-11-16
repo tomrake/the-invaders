@@ -198,8 +198,21 @@
 (defclass displayable ()
   ((x :initarg :x :initform 0 :accessor x)
    (y :initarg :y :initform 0 :accessor y)
+   (w :initarg :w :initform 1 :accessor w)
+   (h :initarg :h :initform 1 :accessor h)
    (dx :initarg :dx :initform 0 :accessor dx)
    (dy :initarg :dy :initform 0 :accessor dy)))
+
+(defmethod has-overlap ((a displayable) (b displayable))
+  (and (<= (x a)
+	   (+ (x b) (w b)))
+       (>= (+ (x a) (w a))
+	   (x b))
+       (<= (y a)
+	   (+ (y b) (h b)))
+       (>= (+ (y a) (h a))
+	   (y b))))
+
 
 (defmethod draw ((obj displayable))
   (error "Nothing to draw!"))
@@ -375,6 +388,7 @@
 
 (defmethod explode ((target enemy) (projectile player-shot))
   (let ((e (make-instance 'exploding-enemy :x (x target) :y (y target)
+			  :w 48 :h 32
 			  :image *img-explosion-enemy*)))
     (push e *exploding-enemy*)
     (add-cleanup-hook e #'(lambda() (remove-object e)))
@@ -404,6 +418,8 @@
 		'enemy
 		:x (* x *space-w*)
 		:y (+ (* y *space-h*) dy)
+		:w 48
+		:h 32
 		:sheet *ss-enemy*
 		:sprite y) *enemy*))))
 
@@ -492,6 +508,8 @@
       (let ((enemy (random-element *enemy*)))
 	(push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
 			     :y (+ (y enemy) 32)
+			     :w 2
+			     :h 10
 			     :dx 0
 			     :dy (+ (random 3) 3)) *enemy-shots*)
 	(play-sound 2)))))
@@ -537,10 +555,7 @@
 
 (defun enemy-shot-player (s)
   (let ((p *ship*))
-    (when (and p (<= (- (x p) 26) (x s))
-		 (>= (+ (x p) 26) (+ (x s) 2))
-		 (<= (y p) (y s))
-		 (>= (+ (y p) 32) (y s)))
+    (when (and p s (has-overlap p s)) 
       (explode p s))))
 
 
@@ -556,10 +571,7 @@
 
 ;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
-;;;; CREATE-EXPLODING-ENEMY function
-
-(defun create-exploding-enemy (x y)
-  (push (make-exploding-enemy :x x :y y :time 6) *exploding-enemy*))
+;;;; UPDATE-EXPLODING-ENEMY function
 
 (defun update-exploding-enemy ()
   (loop for e in *exploding-enemy* do (next e)))
@@ -599,7 +611,7 @@
 	(setf x (+ *game-width* 5))
 	(setf dx -3))
 
-    (setf *mothership* (make-instance 'mothership :x x :y 35 :dx dx :sheet *ss-mothership*)))
+    (setf *mothership* (make-instance 'mothership :x x :y 35 :w 64 :h 32 :dx dx :sheet *ss-mothership*)))
   (play-mothership-engine))
 
 
@@ -677,6 +689,7 @@
 
 (defmethod explode ((target ship) (projectile enemy-shot))
   (let ((e (make-instance 'exploding-ship :x (x target) :y (y target)
+			  :w 52 :h 32
 			  :image *img-explosion-ship*)))
     (push e *exploding-ship*)
     (add-cleanup-hook e #'(lambda() (remove-object e) (create-ship)))
@@ -693,7 +706,7 @@
 
 (defun create-ship ()
   (unless *ship* 
-    (setf *ship* (make-instance 'ship :x 400 :y 540 :sheet *ss-ship*))))
+    (setf *ship* (make-instance 'ship :x 400 :y 540 :w 52 :h 32 :sheet *ss-ship*))))
 
 
 ;;;; DRAW-SHIP function
@@ -708,7 +721,7 @@
   (cond
     ((null p))
     ((equalp direction 'left) (setf (x p) (max 0 (- (x p) 4))))
-    ((equalp direction 'right) (setf (x p) (min (- *game-width* 26)(+ (x p) 4))))))
+    ((equalp direction 'right) (setf (x p) (min (- *game-width* 52)(+ (x p) 4))))))
 
 
 ;;;; FIRE-SHOT function
@@ -716,7 +729,7 @@
 (defun fire-shot (s)
   (when s ; no ship can't fire
     (when (zerop (length *player-shots*)) ; Only one shot on play field at a time???
-      (push (make-instance 'player-shot :x (+ (x s) 13) :y (y s) :dy -5 :dx 0) *player-shots*)
+      (push (make-instance 'player-shot :x (+ (x s) 26) :y (y s) :w 2 :h 10 :dy -5 :dx 0) *player-shots*)
       (play-sound 2))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; PLAYER-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -757,10 +770,7 @@
 
 (defun player-shot-enemy (s)
   (loop for e in *enemy*
-     do (when (and (<= (x e) (x s))
-		 (>= (+ (x e) 48) (+ (x s) 2))
-		 (<= (y e) (y s))
-		 (>= (+ (y e) 32) (y s)))
+     do (when (and e s (has-overlap e s))
 	  (explode e s)))
 
   (when (end-of-level-p)
@@ -774,10 +784,7 @@
 (defun player-shot-mothership (s)
   (if *mothership*
       (let ((m *mothership*))
-	(if (and (<= (x m) (x s))
-		 (>= (+ (x m) 64) (+ (x s) 2))
-		 (<= (y m) (y s))
-		 (>= (+ (y m) 32) (y s)))
+	(if (and s m (has-overlap s m)) 
 	    (progn (create-exploding-mothership m)
 		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
 		   (remove-object m)
