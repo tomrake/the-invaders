@@ -20,6 +20,17 @@
 
 (in-package #:the-invaders)
 
+;;;; Testing Params
+
+(defparameter *disarm-enemy* nil)      ; Eneny will not shoot
+(defparameter *halt-enemy-advance* nil); Enery will not move down
+;(defparameter *enemy-carpet-bomb* nil) ; Enemy takes all shot options.
+
+(defparameter *debug-options* 
+  #-t nil
+  #+t '("*disarm-enemy*"
+    "*halt-enemy-advance*")
+  )
 (defparameter *data-root*
   (asdf:system-source-directory 'the-invaders))
 (defparameter *font-root* (merge-pathnames "fonts/" *data-root*))
@@ -495,10 +506,10 @@
   (loop for e in *enemy*
      do (if (and (equalp *enemy-direction* 'right)
 		 (>= (+ (x e) 50) *game-width*))
-	    (setf *enemy-direction* 'down-and-left)
+	    (setf *enemy-direction* (if *halt-enemy-advance* 'left 'down-and-left))
 	    (if (and (equalp *enemy-direction* 'left)
 		     (<= (x e) 0))
-		(setf *enemy-direction* 'down-and-right)))))
+		(setf *enemy-direction* (if *halt-enemy-advance* 'right 'down-and-right))))))
 
 
 ;;; UPDATE-ENEMY-POSITION function
@@ -551,16 +562,17 @@
 
 (defun fire-enemy-shot ()
   (dotimes (n (ceiling (/ *player-level* 5)))
-    (when (< (random 100) (+ 20 *player-level*))
+    (unless  *disarm-enemy*
+      (when (< (random 100) (+ 20 *player-level*))
 
-      (let ((enemy (random-element *enemy*)))
-	(push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
-			     :y (+ (y enemy) 32)
-			     :w 2
-			     :h 10
-			     :dx 0
-			     :dy (+ (random 3) 3)) *enemy-shots*)
-	(play-sound 2)))))
+	(let ((enemy (random-element *enemy*)))
+	  (push (make-instance 'enemy-shot :x (+ (x enemy) 24) 
+			       :y (+ (y enemy) 32)
+			       :w 2
+			       :h 10
+			       :dx 0
+			       :dy (+ (random 3) 3)) *enemy-shots*)
+	  (play-sound 2))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; ENEMY-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -936,6 +948,18 @@
     (setf *enemy-shots* nil)
     (setf *exploding-enemy* nil)))
 
+;;;;;;;;;;;;;;;;;;;;;;;; DEBUG ;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun render-debug (&optional (debug-options *debug-options*))
+  (when debug-options 
+    (let ((x 10)
+	  (y 64))
+      (loop for opt in debug-options do
+	   (let* ((s (find-symbol (string-upcase opt)))
+		  (v (symbol-value s)))
+	     (when v (draw-text (format nil "DEBUG ~A ~A" opt v) x y 255 0 0)
+		   (incf y 20)))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;; SCREENS ;;;;;;;;;;;;;;;;;;;;;;;;
 
 
@@ -949,7 +973,7 @@
   (draw-text "Game Over" 330 150 255 255 255 *ttf-font-huge*)
 
   (draw-text (format nil "Final Score: ~a" *player-score*) 280 250 255 255 0 *ttf-font-huge*)
-
+  (render-debug)
   (draw-text "Press SPACE to Continue..." 290 570 255 255 255))
 
 
@@ -957,7 +981,7 @@
 
 (defun display-menu ()
   (sdl:draw-surface-at-* (sdl-image:load-image *gfx-title-bg*) 0 0)
-
+  (render-debug)
   (draw-text "Press SPACE to Continue..." 290 570 255 255 255))
 
 
@@ -996,7 +1020,8 @@
   (draw-exploding-ship)
   (draw-exploding-enemy)
   (draw-exploding-mothership)
-  (draw-game-ui))
+  (draw-game-ui)
+  (render-debug))
 
 
 ;;;; CONTINUE-OPTION function
