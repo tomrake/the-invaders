@@ -155,23 +155,33 @@
 
 ;;;; THE *-sheet CLASSES THESE COULD BE PLACED IN THE GPU FOR QUICK COPYING
 
-;;;; The IMAGE-SHEET class
+;;;;;;;;;;;;;;;;;;;;;;;; SPRITE-SHEET ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; The SPRITE-SHEET class
 
 (defclass image-sheet ()
   ((image :initarg :image :reader image)
    (sheet :initform nil)))
+
+;;;; LAZY IMAGE LOADING READER
 
 (defmethod sheet ((ss image-sheet))
   (cond ((slot-value ss 'sheet))
 	(t (load-sheet ss)
 	   (slot-value ss 'sheet))))
 
+;;;; ACTUAL IMAGE LOADER
+
 (defmethod load-sheet ((ss image-sheet))
   (setf (slot-value ss 'sheet) (sdl-image:load-image (image ss)))
   (slot-value ss 'sheet))
 
+;;;; RENDER THE IMAGE
+
 (defmethod img-draw  ((ss image-sheet) (x number) (y number))
   (sdl:draw-surface-at-* (sheet ss) x y))
+
+;;;;;;;;;;;;;;;;;;;;;;;; SPRITE-SHEET ;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;;; The SPRITE-SHEET class
 
@@ -179,21 +189,22 @@
   ((cells :initarg :cells :reader cells)))
 
 
+;;;; LAZY LOADING OF IMAGE CELLS
+
 (defmethod load-sheet :after ((ss sprite-sheet))
   (when (cells ss)
     (setf (sdl:cells (sheet ss)) (cells ss))))
 
+;;;; RENDER AN IMAGE CELL
 
 (defmethod blt-draw ((ss sprite-sheet) (x number) (y number) (cell number))
   "Draw the cell portion of the sheet object for the cell at x and y offsets."
   (sdl:draw-surface-at-* (sheet ss) x y :cell cell))
 
 
+;;;;;;;;;;;;;;;;;;;;;;;; DISPLAYABLE ;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;;;; THE DISPLAYABLE
-
-;;; This is the root of the Drawable game objects
+;;;; THE DISPLAYABLE class
 
 (defclass displayable ()
   ((x :initarg :x :initform 0 :accessor x)
@@ -202,6 +213,9 @@
    (h :initarg :h :initform 1 :accessor h)
    (dx :initarg :dx :initform 0 :accessor dx)
    (dy :initarg :dy :initform 0 :accessor dy)))
+
+
+;;;; OVERLAPING TESTING
 
 (defmethod has-overlap ((a displayable) (b displayable))
   (and (<= (x a)
@@ -214,82 +228,50 @@
 	   (y b))))
 
 
+
+;;;; DRAW - ERROR FALLBACK
+
 (defmethod draw ((obj displayable))
   (error "Nothing to draw!"))
+
+;;;; MOTION 
 
 (defmethod delta-move ((obj displayable))
   "Change the object position by one step."
   (incf (x obj) (dx obj))
   (incf (y obj) (dy obj)))
 
-;;;; THE IMAGE-DRAWABLE class
 
-;;; These object use a image sheet to draw themselves
+;;;;;;;;;;;;;;;;;;;;;;;; IMAGE-DRAWABLE ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; THE IMAGE-DRAWABLE class
 
 (defclass image-drawable (displayable)
   ((image :initarg :image :reader image)))
 
+;;;; DRAW
+
 (defmethod draw ((obj image-drawable))
   (img-draw (image obj) (x obj) (y obj)))
 
-;;;; THE SPRITE-DRAWABLE class
 
+;;;;;;;;;;;;;;;;;;;;;;;; SPRITE-DRAWABLE ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; THE SPRITE-DRAWABLE class
 
 (defclass sprite-drawable (displayable)
   ((sheet :initarg :sheet :reader sheet)))
 
+;;;; CELL-ANIMATOR - ERROR FAILBACK
+
 (defmethod cell-animator ((obj sprite-drawable))
   (error "subclasses should define a cell-animator method."))
+
+;;;; DRAW
 
 (defmethod draw ((obj sprite-drawable))
   "Draw the cell of spite-object from the sprite sheet."
   (blt-draw (sheet obj) (x obj) (y obj) (cell-animator obj)))
-
-;;;; The PLAYER-SHOT
-
-(defclass player-shot (displayable)
-  ())
-
-;;;; THE ENEMY CLASS
-
-(defclass enemy (sprite-drawable)
-  ((sprite :initarg :sprite :initform 0 :accessor sprite)))
-
-;;;; The SHIP CLASS
-
-(defclass ship (sprite-drawable)
-  ())
-
-(defclass exploding-ship (delayed-action image-drawable)
-  ())
-
-;;;; THE ENEMY-SHOT class
-
-(defclass enemy-shot (displayable)
-  ())
-
-;;;; THE EXPLODING-ENEMY class
-
-(defclass exploding-enemy (delayed-action image-drawable)
-  ())
-
-;;;; THE MOTHERSHIP class
-
-(defclass mothership (sprite-drawable) 
-  ())
-
-(defmethod cell-animator ((obj mothership))
-  (floor (mod *game-ticks* 9) 3))
-
-(defmethod remove-object ((obj mothership))
-  (setf *mothership* nil))
-
-
-(defstruct exploding-mothership
-  (x 0)
-  (y 0)
-  (time 0))
-
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; UTILS ;;;;;;;;;;;;;;;;;;;;;;;;
@@ -362,6 +344,69 @@
 (defun draw-polygon (vertices r g b)
   (sdl:draw-filled-polygon vertices :color (sdl:color :r r :g g :b b)))
 
+;;;;;;;;;;;;;;;;;;;;;;;; PLAYER-SHOT ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; The PLAYER-SHOT
+
+(defclass player-shot (displayable)
+  ())
+
+
+;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+;;;; REMOVE-OBJECT 
+
+(defmethod remove-object ((obj player-shot))
+  (setf *player-shots* (remove obj *player-shots*)))
+
+;;;; DRAW
+
+(defmethod draw ((shot player-shot))
+  (draw-box (x shot) (y shot) 2 10 255 255 255))
+
+;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
+
+;;;; DRAW-SHOT function
+
+(defun draw-shot ()
+  (loop for f in *player-shots*
+     do (draw f)))
+
+
+;;;; UPDATE-PLAYER_SHOTS function
+
+(defun update-player-shots ()
+  (loop for f in *player-shots*
+     do (progn (if (<= (y f) 0)
+		   (setf *player-shots* (remove f *player-shots*))
+		   (delta-move f))
+	       (player-shot-enemy f)
+	       (player-shot-mothership f))))
+
+
+;;;; PLAYER-SHOT-HIT function
+
+(defun player-shot-enemy (s)
+  (loop for e in *enemy*
+     do (when (and e s (has-overlap e s))
+	  (explode e s)))
+
+  (when (end-of-level-p)
+      (calculate-score)
+      (new-level)
+      (play-sound 6)))
+
+
+;;;; PLAYER-SHOT-MOTHERSHIP function
+
+(defun player-shot-mothership (s)
+  (if *mothership*
+      (let ((m *mothership*))
+	(when (and s m (has-overlap s m))
+	  (explode m s)))))
+
+
+
 
 ;;;; PLAY-SOUND function
 
@@ -371,6 +416,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; ENEMY ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;; THE ENEMY CLASS
+
+(defclass enemy (sprite-drawable)
+  ((sprite :initarg :sprite :initform 0 :accessor sprite)))
 
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
@@ -401,7 +450,6 @@
     (trigger-delay e 6)))
 
 ;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
-
 
 ;;;; CREATE-ENEMY function
 
@@ -517,6 +565,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; ENEMY-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;; THE ENEMY-SHOT class
+
+
+(defclass enemy-shot (displayable)
+  ())
+
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
 ;;;; REMOVE
@@ -561,6 +615,12 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-ENEMY ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;; THE EXPLODING-ENEMY class
+
+(defclass exploding-enemy (delayed-action image-drawable)
+  ())
+
+
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
 ;;;; REMOVE
@@ -585,7 +645,40 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;; MOTHERSHIP ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;; THE MOTHERSHIP class
+
+(defclass mothership (sprite-drawable) 
+  ())
+
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
+
+
+;;;; CELL-ANIMATOR
+
+(defmethod cell-animator ((obj mothership))
+  (floor (mod *game-ticks* 9) 3))
+
+;;;; REMOVE
+
+(defmethod remove-object ((obj mothership))
+  (setf *mothership* nil))
+
+;;;; EXPLODE
+
+(defmethod explode ((target mothership) (projectile player-shot))
+  (setf *player-score* (+ *player-score* (calculate-mothership-score target)))
+  (halt-mothership-engine)
+  (play-sound 5)
+  (let ((e (make-instance 'exploding-mothership :x (x target) :y (y target)
+			  :image *img-explosion-ship*
+			  :w 64
+			  :h 32)))
+    (push e *exploding-mothership*)
+    (add-cleanup-hook e #'(lambda () (remove-object e)))
+    (remove-object target)
+    (remove-object projectile)
+    (trigger-delay e 15)))
+
 
 ;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
 
@@ -629,35 +722,33 @@
   (when *mothership*
       (let ((m *mothership*))
        (setf (x m) (+ (x m) (dx m)))
-       (if (or (<= (x m) -75)
+       (when (or (<= (x m) -75)
 	       (>= (x m) (+ *game-width* 10)))
-	   (setf *mothership* nil)))))
+	   (remove-object m)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-MOTHERSHIP ;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;;; THE EXPLODING-MOTHERSHIP class
+
+(defclass exploding-mothership (delayed-action image-drawable)
+  ())
 
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
+(defmethod remove-object ((obj exploding-mothership))
+  (setf *exploding-mothership* (remove obj *exploding-mothership*)))
 
-;;;; CREATE-EXPLODING-MOTHERSHIP function
-
-(defun create-exploding-mothership (m)
-  (setf *exploding-mothership* (make-exploding-mothership :x (x m)
-							  :y (y m)
-							  :time 15)))
-
-;;;; DRAW-EXPLODING-MOTHERSHIP function
+;;;; DRAW-EXPLODING-MOTHERSHIP
 
 (defun draw-exploding-mothership ()
-  (when *exploding-mothership*
-      (let ((m *exploding-mothership*))
-	 (if (zerop (exploding-mothership-time m))
-	     (setf *exploding-mothership* nil)
-	     (progn (setf (exploding-mothership-time m)
-		(decf (exploding-mothership-time m)))
-		(sdl:draw-surface-at-* (sdl-image:load-image *gfx-explosion-ship*)
-			(exploding-mothership-x m)
-			(exploding-mothership-y m)))))))
+  (loop for e in *exploding-mothership*
+       do (draw e)))
+
+;;;; UPDATE-EXPLODING-MOTHERSHIP
+
+(defun update-exploding-mothership ()
+  (loop for e in *exploding-mothership*
+       do (next e)))
 
 ;;;; PLAY-MOTHERSHIP-ENGINE function
 
@@ -672,6 +763,11 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; SHIP ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; The SHIP CLASS
+
+(defclass ship (sprite-drawable)
+  ())
 
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
@@ -732,66 +828,13 @@
       (push (make-instance 'player-shot :x (+ (x s) 26) :y (y s) :w 2 :h 10 :dy -5 :dx 0) *player-shots*)
       (play-sound 2))))
 
-;;;;;;;;;;;;;;;;;;;;;;;; PLAYER-SHOTS ;;;;;;;;;;;;;;;;;;;;;;;;
-
-;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
-
-;;;; REMOVE-OBJECT 
-
-(defmethod remove-object ((obj player-shot))
-  (setf *player-shots* (remove obj *player-shots*)))
-
-;;;; DRAW
-
-(defmethod draw ((shot player-shot))
-  (draw-box (x shot) (y shot) 2 10 255 255 255))
-
-;;;;;;;;;;;; FUNCTIONS ;;;;;;;;;;;;
-
-;;;; DRAW-SHOT function
-
-(defun draw-shot ()
-  (loop for f in *player-shots*
-     do (draw f)))
-
-
-;;;; UPDATE-PLAYER_SHOTS function
-
-(defun update-player-shots ()
-  (loop for f in *player-shots*
-     do (progn (if (<= (y f) 0)
-		   (setf *player-shots* (remove f *player-shots*))
-		   (delta-move f))
-	       (player-shot-enemy f)
-	       (player-shot-mothership f))))
-
-
-;;;; PLAYER-SHOT-HIT function
-
-(defun player-shot-enemy (s)
-  (loop for e in *enemy*
-     do (when (and e s (has-overlap e s))
-	  (explode e s)))
-
-  (when (end-of-level-p)
-      (calculate-score)
-      (new-level)
-      (play-sound 6)))
-
-
-;;;; PLAYER-SHOT-MOTHERSHIP function
-
-(defun player-shot-mothership (s)
-  (if *mothership*
-      (let ((m *mothership*))
-	(if (and s m (has-overlap s m)) 
-	    (progn (create-exploding-mothership m)
-		   (setf *player-score* (+ *player-score* (calculate-mothership-score m)))
-		   (remove-object m)
-		   (halt-mothership-engine)
-		   (play-sound 5))))))
-
 ;;;;;;;;;;;;;;;;;;;;;;;; EXPLODING-SHIP ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; THE EXPLODING-SHIP class
+
+(defclass exploding-ship (delayed-action image-drawable)
+  ())
+
 
 ;;;;;;;;;;;; METHODS ;;;;;;;;;;;;
 
@@ -941,6 +984,7 @@
     (update-enemy-shots)
     (deploy-mothership)
     (update-exploding-enemy)
+    (update-exploding-mothership)
     (update-exploding-ship))
 
   (display-level)
