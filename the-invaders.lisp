@@ -17,8 +17,17 @@
 
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program. If not, see <http://www.gnu.org/licenses/>.
+(defpackage #:the-invaders/the-invaders
+  (:use #:cl)
+  (:import-from #:lispbuilder-sdl)
+  (:import-from #:lispbuilder-sdl-image)
+  (:import-from #:lispbuilder-sdl-ttf)
+  (:import-from #:lispbuilder-sdl-mixer)
+  (:export
+   #:start
+   ))
 
-(in-package #:the-invaders)
+(in-package #:the-invaders/the-invaders)
 
 ;;;; Testing Params
 
