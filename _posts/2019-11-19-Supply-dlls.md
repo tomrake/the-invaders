@@ -7,7 +7,7 @@ layout: post
 It seems that SDL 2 dll have the same names as SDL 1.2 components and I wish to use both in this repo.
 SDL 2 is now under zlib liscense so I can distribute the binaries without the code.
 I plan to have a fat multi-platfom lib directory, so for each platform `lib/linux`, `lib/windows`, `lib/darwin` exist in the rep.
-I using Pavel Korolev's Guide [Delivering games written in Common Lisp](https://borodust.org/delivering-common-lisp) to structure my code.
+I heavily borrow concepts from Pavel Korolev's Guide [Delivering games written in Common Lisp](https://borodust.org/delivering-common-lisp) to structure my code.
 
 ### Load the dll upfront from platform specific paths
 
