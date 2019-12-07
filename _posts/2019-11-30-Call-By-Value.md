@@ -14,7 +14,7 @@ I need to setup the C compiler enviroment for ming64 which shell can correctly e
 
 - Write C by reference glue code which does the by value calls. Compile C in asdf, will need `.h` files for sdl_ttf.
 
-- Use the `$CC` variable to setup the mingw64 enivironment. Mounts are the difficult part.
+- Use the `CC` variable to setup the mingw64 enivironment. Mounts are the difficult part.
 
 - Find another way to fix cffi-libffi for mingw.
 
