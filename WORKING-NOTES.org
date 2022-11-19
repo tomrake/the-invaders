@@ -4,19 +4,19 @@
 * Packaging Issues
 I have had bad habit when not understanding how ASDF packaging works.
 - system depends are on systems
-- packaage depends are on packages (these are lisp packages)
-- system are build by file dependacies.
+- package depends are on packages (these are lisp packages)
+- system are build by file dependencies.
 
 * Analysis
-Currently the-invaders.lisp has a series of :import-from why did I do that.
+Currently the-invaders. lisp has a series of :import-from why did I do that.
 - I believe to cause the package loads as a side effect.
-  - Since I do not import and symbols I can remove them and push the side effect loading into my configurator.
-  - All :lispbuilder-sdl type packages are never referenced.
-    - The SDL package are directly used
+ - Since I do not import and symbols I can remove them and push the side effect loading into my configurator.
+ - All :lispbuilder-sdl type packages are never referenced.
+ - The SDL package are directly used
     - This implies my configurator needs to load those packages, which are external.
 
 * How I should proceed
 - write a configurator that defines that loads the externals.
 - See if that runs.
-- Next a a branch remmove the lispbuild-sdl references. See if that loads and runs correctly.
-  if so merge that into the current branch.
+- Next in a feature branch remove the lispbuilder-sdl references. See if that loads and runs correctly.
+If so merge that into the current branch.
