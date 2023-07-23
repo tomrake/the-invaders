@@ -1,0 +1,8 @@
+baseURL = 'http://my-project-skel.github.io/'
+languageCode = 'en-us'
+title = 'My New Hugo Site'
+theme = "m10c"
+[[params.social]]
+  icon = "github-dark"
+  name = "My Github"
+  url = "https://github.com/tomrake"
