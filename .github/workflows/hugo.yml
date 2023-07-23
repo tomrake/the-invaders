@@ -57,7 +57,7 @@ jobs:
           hugo \
             --debug \
             --source "docs" \
-            --destination "./public" \
+            --destination "../public" \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
       - name: Upload artifact
