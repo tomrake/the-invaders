@@ -1,8 +1,29 @@
 baseURL = 'http://my-project-skel.github.io/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+title = 'An Empty project with Hugo documentation.'
 theme = "m10c"
+
+author = "Tom Rake"
+[params]
+  description = "A empty project with a skeleton documenation system done in Hugo."
+  avatar = "2665605.jfif"
+
 [[params.social]]
   icon = "github-dark"
-  name = "My Github"
+  name = "Github"
   url = "https://github.com/tomrake"
+
+[[params.social]]
+  icon = "reddit"
+  name = "tomrake"
+  url = "https://reddit.com/user/tomrake"
+
+[[params.social]]
+  icon = "mastodon"
+  name = "Mastodon"
+  url = "https://mastodon.social/@tomrake"
+
+[[params.social]]
+  icon = "discord"
+  name = "Discord"
+  url = "https://discordapp.com/users/tomrake1957#0816"
