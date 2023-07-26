@@ -27,3 +27,13 @@ author = "Tom Rake"
   icon = "discord"
   name = "Discord"
   url = "https://discordapp.com/users/tomrake1957#0816"
+
+[[menu.main]]
+ name = "Home"
+ url = "/"
+ weight = "10"
+
+[[menu.main]]
+ name = "About"
+ url = "/about/"
+ weight = "20"
