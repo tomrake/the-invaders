@@ -1,4 +1,4 @@
-baseURL = 'http://my-project-skel.github.io/'
+baseURL = 'http://tomrake.github.io/my-project-skel'
 languageCode = 'en-us'
 title = 'An Empty project with Hugo documentation.'
 theme = "m10c"
