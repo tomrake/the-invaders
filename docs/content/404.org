@@ -1,0 +1,6 @@
+#+TITLE: 404
+#+DATE: 2023-07-25T20:53:43-04:00
+
+* Can't find that resource
+
+404
