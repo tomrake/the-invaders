@@ -1,6 +1,6 @@
 #+TITLE: Github Pages From Docs
 #+DATE: 2023-07-27T14:10:36-04:00
-#+DRAFT: true
+
 
 This is a prototype repository which hosts Github Pages from the "docs" folder of the project.
 
