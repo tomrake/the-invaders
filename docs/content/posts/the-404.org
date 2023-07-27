@@ -1,0 +1,6 @@
+#+TITLE: The 404
+#+DATE: 2023-07-27T14:56:46-04:00
+
+
+It took me a while to write the 404 interface.
+This code could do more like have a return to last page option.
