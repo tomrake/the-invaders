@@ -10,3 +10,12 @@ To remove it you could delete the entire folder context/posts or delete all the 
 You will likely need to have a local hugo setup to allow local development of your site.
 
 This post will likely be revised with the actual activation instructions.
+
+* How to enable github pages
+
+The new site needs github pages enabled.
+Select the repo's setting page, the Setting gear.
+User the sub heading on the left that says "Code and Automation" and select the Pages item.
+The next dialog will have a header Build and deployment dropdown menu called Source.
+Change the Source to Github Actions. That action is defined by this repo in .gitub/workflows/Hugo.yml.
+
