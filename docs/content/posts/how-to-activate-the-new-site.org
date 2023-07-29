@@ -1,0 +1,12 @@
+#+TITLE: How to Activate the New Site
+#+DATE: 2023-07-28T20:30:49-04:00
+
+In the best case the new site just builds.
+But I believe the github pages need to be activated.
+
+The next part is converting to your projects site.
+This documentation will be active in the new site.
+To remove it you could delete the entire folder context/posts or delete all the posts.
+You will likely need to have a local hugo setup to allow local development of your site.
+
+This post will likely be revised with the actual activation instructions.
