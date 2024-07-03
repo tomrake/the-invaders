@@ -1,6 +1,29 @@
 #+TITLE: Working notes for the-invaders
 #+OPTIONS: toc:nil num:nil ^:nil
 
+* Fast Forward to July 3, 2024
+This program cause be a lot of hacking to find the workable solutions to several problems.
+**  How are the dlls suppled?  [SOLVED]
+The lead me down the lib_preload path which ended at two places.
+1) Use msys2 and add the corrent paths to cffi loadpaths
+2) Use the cl+ssl solution where a component is written to load them for a file.
+
+For this program ensure they are loaded in msys2:
+#+begin_src bash
+pacboy -S SDL:u
+#+end_src
+
+And similar with the remaining SDL libs.
+
+Ensure that system msys2-for-externals is loaded before the game code. 
+
+** SDL2 Prototype
+The autowrapped SDL2 code has always been a problem on windows.
+The autowrapping strategy is fragile based on internal changes in the CLANG commpiler.
+While the autowrapping only needs to produce the interface code for CFFI, the CLANG tool changes the internal coding for the tool used.
+I am highly suspicious the developers are on Mac and don't give a crap aboud Windows.
+This is a pity as SDL2 is Window compatible.
+
 * Packaging Issues
 I have had bad habit when not understanding how ASDF packaging works.
 - system depends are on systems
