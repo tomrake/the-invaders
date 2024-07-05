@@ -1,6 +1,66 @@
 #+TITLE: Working notes for the-invaders
 #+OPTIONS: toc:nil num:nil ^:nil
 
+* July 4, 2024!
+
+This is attempt to show a problem loading sdl_mixer using only quicklisp version of code.
+
+** Debug  sdl-mixer not loading
+
+Trying this example from quicklisp source.
+
+#+begin_src lisp
+  (ql:quickload :msys2-for-externals)
+  (ql:quickload :lispbuilder-sdl-mixer-examples)
+#+end_src
+
+sdl-mixer does not load
+
+*** Analysis
+
+Here I greped the SDL libraries
+
+#+begin_example
+$ ls -l| grep SDL
+-rwxr-xr-x 1 zzzap zzzap   425301 Mar 14  2022 SDL.dll
+-rwxr-xr-x 1 zzzap zzzap  2386009 Jun 25 15:28 SDL2.dll
+-rwxr-xr-x 1 zzzap zzzap   134639 Feb 22 10:10 SDL2_image.dll
+-rwxr-xr-x 1 zzzap zzzap   319136 Jan 24 12:01 SDL2_mixer.dll
+-rwxr-xr-x 1 zzzap zzzap    29290 Sep  4  2022 SDL2_net.dll
+-rwxr-xr-x 1 zzzap zzzap    83049 Jan 24 12:06 SDL2_ttf.dll
+-rwxr-xr-x 1 zzzap zzzap    35577 May  8  2021 SDL_ttf.dll
+-rwxr-xr-x 1 zzzap zzzap    75440 Mar 18  2022 libSDL2_gfx-1-0-0.dll
+-rwxr-xr-x 1 zzzap zzzap   123388 Dec 17  2022 libSDL_image-1-2-0.dll
+-rwxr-xr-x 1 zzzap zzzap   205737 Aug  9  2021 libSDL_mixer-1-2-0.dll
+
+#+end_example
+
+[[c:/Users/Public/Lispers/quicklisp/dists/quicklisp/software/lispbuilder-20210807-git/lispbuilder-sdl-mixer/cffi/library.lisp]]
+
+#+begin_src lisp
+(cffi:define-foreign-library sdl-mixer
+  (:darwin (:or (:framework "SDL_mixer")
+                (:default "libSDL_mixer")))
+  (:windows "SDL_mixer.dll")
+  (:unix (:or "libSDL_mixer"
+	      "libSDL_mixer.so"
+	      "libSDL_mixer-1.2.so"
+	      "libSDL_mixer-1.2.so.0")))
+#+end_src
+
+The problem is that the there is not a "libSDL_mixer-1-2-9" values in the :windows search.
+
+*** Proposed fix
+
+#+begin_src lisp
+    (:windows (:or "SDL_mixer.dll"
+		   "libSDL_mixer-1-2-0"))
+#+end_src
+
+This now loads. The following plays the music and sounds.
+#+begin_src lisp
+(lispbuilder-sdl-mixer-examples:mixer)
+#+end_src
 * Fast Forward to July 3, 2024
 This program cause be a lot of hacking to find the workable solutions to several problems.
 **  How are the dlls suppled?  [SOLVED]

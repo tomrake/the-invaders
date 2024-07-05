@@ -1,13 +1,16 @@
-;;;; the-invaders.asd
-#-asdf3.1 (error "requires ASDF 3.1")
 (asdf:defsystem #:the-invaders
   :version "1.1.1"
   :description "A remake of the classic game Space Invaders"
   :author "Jan Tatham <jan@sebity.com>"
   :license "GPL v2"
-  :class :package-inferred-system
-  :depends-on (#:the-invaders/all)
-  )
+  :depends-on ("msys2-for-externals"
+	       "lispbuilder-sdl"
+	       "lispbuilder-sdl-image"
+	       "lispbuilder-sdl-mixer"
+	       "lispbuilder-sdl-ttf"
+	       "lispbuilder-sdl-mixer")
+  :components ((:file "package")
+	       (:file "the-invaders")))
 
 
 
