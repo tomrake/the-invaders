@@ -3,7 +3,7 @@
   :description "A remake of the classic game Space Invaders"
   :author "Jan Tatham <jan@sebity.com>"
   :license "GPL v2"
-  :depends-on ("msys2-for-externals"
+  :depends-on ("setup-sdl-1-2"
 	       "lispbuilder-sdl"
 	       "lispbuilder-sdl-image"
 	       "lispbuilder-sdl-mixer"
