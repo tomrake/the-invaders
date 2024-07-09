@@ -1,6 +1,7 @@
 ---
 title: Weekly Update #1
 layout: post
+date: 2019-11-16
 ---
 The week of work on the-invaders.
 

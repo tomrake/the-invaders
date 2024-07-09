@@ -2,6 +2,7 @@
 layout: post
 comments: yes
 title: Locating Shared Objects
+date: 2022-11-18
 ---
 * The location of the shared objects needed for the-invaders are located in a lisp file ~/.the-invaders
 

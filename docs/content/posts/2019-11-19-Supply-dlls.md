@@ -1,6 +1,7 @@
 ---
 title: DLL name conflicts
 layout: post
+date: 2019-11-19
 ---
 ### Avoiding DLL Hell
 

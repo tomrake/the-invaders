@@ -1,6 +1,7 @@
 ---
 layout: post
 title: Back from the real world.
+date: 2020-03-15
 ---
 
 # Enter the large time allocator

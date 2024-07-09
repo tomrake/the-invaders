@@ -2,6 +2,7 @@
 layout: post
 comments: yes
 title: Back Again
+date: 2022-11-17
 ---
 How to supply the SDL binary shared libraries has always been a question and this is my current strategy to resolve that question.
 Leverage the LISP image model to load cffi references to the SDL objects in a wrapper code, that define the local locations of the various external object files.

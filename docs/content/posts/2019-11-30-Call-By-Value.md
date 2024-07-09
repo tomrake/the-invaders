@@ -1,6 +1,7 @@
 ---
 title: Call by value, libffi, cffi-libffi and Windows
 layout: post
+date: 2019-11-30
 ---
 ## Call by value in sdl2-ttf
 

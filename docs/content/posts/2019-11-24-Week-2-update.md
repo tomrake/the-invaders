@@ -1,6 +1,7 @@
 ---
 title: Weekly Update #2
 layout: post
+date: 2019-11-24
 ---
 ## Windows update hell
 The [lispgames/sdl2-ttf](https://github.com/lispgames/cl-sdl2-ttf) is broken on Windows, should file a bug, but it is likely a [*it works on my machine*](https://hackernoon.com/it-works-on-my-machine-f7a1e3d90c63) issue.

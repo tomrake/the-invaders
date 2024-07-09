@@ -1,6 +1,7 @@
 ---
 layout: post
 title: The Delivery of Shared Libraries
+date: 2020-03-17
 ---
 In [A previous post]({{ site.baseurl }}{% link _posts/2019-11-19-Supply-dlls.md %}) I dicussed a method to stragically load DLL shared code.
 
