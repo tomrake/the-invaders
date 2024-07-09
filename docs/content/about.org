@@ -3,12 +3,11 @@
 #+LAYOUT: "about"
 * The Purpose
 
-I intend to clone this project to document and blog about code.
+Allow lisp code to draw using SDL 1.2 graphics on Windows.
 
-* My theme
+** This should not have been this hard
 
-I use a modified clone of the m10c theme which is the [[https://github.com/tomrake/hugo-theme-m10c-twr][m10c-twr]] theme.
-I have added additional social icons for reddit, github, and mastodon.
-See [[https://tomrake.github.io/hugo-theme-m10c-twr/]] for how I added addition feather icons.
+Yes the result is simple but the path had a lot of learning.
 
-
+- I know now where to get the released sdl binaries.
+- I know now how to get the lispbuilder code to load those binaries.

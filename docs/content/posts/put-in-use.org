@@ -1,6 +1,0 @@
-#+TITLE: Put in Use
-#+DATE: 2023-07-27T15:55:08-04:00
-
-
-Any new features needed to be added to this skel will only likely be found by use.
-At this point I am going to document mu work on packaging CLOG programs with the DEPLOY system.

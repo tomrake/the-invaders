@@ -1,11 +1,11 @@
-baseURL = 'https://tomrake.github.io/my-project-skel/'
+baseURL = 'https://tomrake.github.io/the-invaders/'
 languageCode = 'en-us'
-title = 'An Empty project with Hugo documentation.'
+title = 'An .'
 theme = "m10c"
 
 author = "Tom Rake"
 [params]
-  description = "A empty project with a skeleton documenation system done in Hugo."
+  description = "the-invader a space invaders clone. And sdl testing for windows."
   avatar = "2665605.jfif"
 
 [[params.social]]

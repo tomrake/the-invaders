@@ -1,5 +1,0 @@
-#+TITLE: Archtypes for Org Files
-#+DATE: 2023-07-27T15:38:45-04:00
-
-Since I blog from emacs in org mode I need to create an archtype for my org files.
-It seems I am not using all the ox-hugo stuff.
