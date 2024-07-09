@@ -1,11 +1,11 @@
 baseURL = 'https://tomrake.github.io/the-invaders/'
 languageCode = 'en-us'
-title = 'A SDL on Window Proving Ground'
+title = 'The Invaders: CL SDL on Window Proving Ground.'
 theme = "m10c"
 
 author = "Tom Rake"
 [params]
-  description = "the-invader a space invaders clone. And sdl testing for windows."
+  description = "A space invaders clone in Common Lisp. And sdl testing for windows."
   avatar = "2665605.jfif"
 
 [[params.social]]
