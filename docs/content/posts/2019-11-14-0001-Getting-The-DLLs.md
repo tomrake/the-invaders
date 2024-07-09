@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Getting the dll files
-date: 2019-11-14-0001
+date: 2019-11-14T09:00:00+05:00
 ---
 ### Where to install dlls for SBCL
 
