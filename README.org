@@ -1,0 +1,5 @@
+* My Project Skel
+
+This is a [[https://gohugo.io/][Hugo static site generator]] for github pages.
+
+See [[https://tomrake.github.io/my-project-skel/][This Link]] to see this static site.

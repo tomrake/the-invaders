@@ -1,0 +1,14 @@
+#+TITLE: About
+#+DESCRIPTION: "About this project"
+#+LAYOUT: "about"
+* The Purpose
+
+I intend to clone this project to document and blog about code.
+
+* My theme
+
+I use a modified clone of the m10c theme which is the [[https://github.com/tomrake/hugo-theme-m10c-twr][m10c-twr]] theme.
+I have added additional social icons for reddit, github, and mastodon.
+See [[https://tomrake.github.io/hugo-theme-m10c-twr/]] for how I added addition feather icons.
+
+

@@ -1,0 +1,28 @@
+#+TITLE: Github Pages From Docs
+#+DATE: 2023-07-27T14:10:36-04:00
+
+
+This is a prototype repository which hosts Github Pages from the "docs" folder of the project.
+
+This is the hugo step of the build workflow in hugo.yml.
+
+#+begin_src json
+      - name: Build with Hugo
+        env:
+          # For maximum backward compatibility with Hugo modules
+          HUGO_ENVIRONMENT: production
+          HUGO_ENV: production
+        run: |
+          hugo \
+            --debug \
+            --source "docs" \
+            --destination "../public" \
+            --minify \
+            --baseURL "${{ steps.pages.outputs.base_url }}/"
+#+end_src
+
+My workflow yugo.yml was derived from the one suggested for Hugo by Github.
+I merely changed the --source and --destination values to build from docs and put the resulting pages when the upload-pages-artifact@v2 could find them.
+
+Why didn't I modify the Upload artifcat step instead?
+The version I created works.

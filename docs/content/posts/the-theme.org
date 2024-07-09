@@ -1,0 +1,14 @@
+#+TITLE: The Theme
+#+DATE: 2023-07-27T14:57:18-04:00
+
+The theme m10c-twr is a commont theme for my various hugo sites.
+My theme is inserted in the hugo site as a submodule.
+This theme has custom icon added to the feather icons.
+
+The feather icons are svg elements that are stroked with a site determined color.
+I wished to have other branded icons for my social links.
+There is a file in  the theme that contains a json statement of a dictionary where the key is the name and the values svg expressions.
+m10c inserts these icons in the side bar inside of svg drawing which defined the color of the strokes.
+
+To add a custom icon I have been able to override the stroke color and add and scale other svg icon code.
+The entire purpuse of the separate  theme is to change this one file.

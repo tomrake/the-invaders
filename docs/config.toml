@@ -1,0 +1,39 @@
+baseURL = 'https://tomrake.github.io/my-project-skel/'
+languageCode = 'en-us'
+title = 'An Empty project with Hugo documentation.'
+theme = "m10c"
+
+author = "Tom Rake"
+[params]
+  description = "A empty project with a skeleton documenation system done in Hugo."
+  avatar = "2665605.jfif"
+
+[[params.social]]
+  icon = "github-dark"
+  name = "Github"
+  url = "https://github.com/tomrake"
+
+[[params.social]]
+  icon = "reddit"
+  name = "tomrake"
+  url = "https://reddit.com/user/tomrake"
+
+[[params.social]]
+  icon = "mastodon"
+  name = "Mastodon"
+  url = "https://mastodon.social/@tomrake"
+
+[[params.social]]
+  icon = "discord"
+  name = "Discord"
+  url = "https://discordapp.com/users/tomrake1957#0816"
+
+[[menu.main]]
+ name = "Home"
+ url = "/"
+ weight = "10"
+
+[[menu.main]]
+ name = "About"
+ url = "/about/"
+ weight = "20"

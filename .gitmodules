@@ -1,0 +1,3 @@
+[submodule "docs/themes/m10c"]
+	path = docs/themes/m10c
+	url = git@github.com:tomrake/hugo-theme-m10c-twr.git
