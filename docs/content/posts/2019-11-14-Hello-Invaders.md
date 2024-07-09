@@ -2,6 +2,7 @@
 layout: post
 title: The Invaders, The Refactor
 published: true
+date: 2019-11-14T11:00:00+05:00
 ---
 Jan Tatham ( Sebity on github http://www.sebity.com/ )
 created a [Common Lisp clone of the Space Invaders game](https://github.com/sebity/the-invaders) on Github.

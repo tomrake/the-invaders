@@ -1,6 +1,6 @@
 baseURL = 'https://tomrake.github.io/the-invaders/'
 languageCode = 'en-us'
-title = 'An .'
+title = 'A SDL on Window Proving Ground'
 theme = "m10c"
 
 author = "Tom Rake"
